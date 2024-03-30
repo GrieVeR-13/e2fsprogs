@@ -480,12 +480,11 @@ static void init_times(struct ext2_inode_large *inode)
 {
 	struct timespec now;
 
-    abort();
-	get_now(&now); //todoe
-//	EXT4_INODE_SET_XTIME(i_atime, &now, inode);
-//	EXT4_INODE_SET_XTIME(i_ctime, &now, inode);
-//	EXT4_INODE_SET_XTIME(i_mtime, &now, inode);
-//	EXT4_EINODE_SET_XTIME(i_crtime, &now, inode);
+	get_now(&now);
+	EXT4_INODE_SET_XTIME(i_atime, &now, inode);
+	EXT4_INODE_SET_XTIME(i_ctime, &now, inode);
+	EXT4_INODE_SET_XTIME(i_mtime, &now, inode);
+//	EXT4_EINODE_SET_XTIME(i_crtime, &now, inode); //todoe
 	increment_version(inode);
 }
 
@@ -3744,7 +3743,7 @@ static int fuse2fs_opt_proc(void *data, const char *arg,
 	return 1;
 }
 
-int mainExt4(int argc, char *argv[], void *fuseSession)
+int mainExt4(int argc, char *argv[], void **fuseSession)
 {
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
     struct fuse2fs *fctx = malloc(sizeof(struct fuse2fs));
@@ -3755,7 +3754,7 @@ int mainExt4(int argc, char *argv[], void *fuseSession)
 	int ret = 0;
 	int flags = EXT2_FLAG_64BITS | EXT2_FLAG_THREADS | EXT2_FLAG_EXCLUSIVE;
 
-	memset(fctx, 0, sizeof(fctx));
+	memset(fctx, 0, sizeof(*fctx));
 	fctx->magic = FUSE2FS_MAGIC;
 
 //	fuse_opt_parse(&args, &fctx, fuse2fs_opts, fuse2fs_opt_proc);
@@ -3812,7 +3811,7 @@ int mainExt4(int argc, char *argv[], void *fuseSession)
 		goto out;
 	}
 	fctx->fs = global_fs;
-	global_fs->priv_data = &fctx;
+	global_fs->priv_data = fctx;
 
 	ret = 3;
 //todoe
@@ -3908,7 +3907,7 @@ int mainExt4(int argc, char *argv[], void *fuseSession)
 
 	pthread_mutex_init(&fctx->bfl, NULL);
 
-	fuseSession = cfuse_main(args.argc, args.argv, &fs_ops, &fctx);
+	*fuseSession = cfuse_main(args.argc, args.argv, &fs_ops, fctx);
 //	pthread_mutex_destroy(&fctx->bfl);
 
 	ret = 0;
@@ -3936,111 +3935,110 @@ int ext4FuseClose(struct fuse2fs *fctx) {
 }
 
 static int __translate_error(ext2_filsys fs, errcode_t err, ext2_ino_t ino,
-			     const char *file, int line)
+                             const char *file, int line)
 {
-	/*struct timespec now;
-	int ret = err;
-	struct fuse2fs *ff = fs->priv_data;
-	int is_err = 0;
+    struct timespec now;
+    int ret = err;
+    struct fuse2fs *ff = fs->priv_data;
+    int is_err = 0;
 
-	*//* Translate ext2 error to unix error code *//*
-	if (err < EXT2_ET_BASE)
-		goto no_translation;
-	switch (err) {
-	case EXT2_ET_NO_MEMORY:
-	case EXT2_ET_TDB_ERR_OOM:
-		ret = -ENOMEM;
-		break;
-	case EXT2_ET_INVALID_ARGUMENT:
-	case EXT2_ET_LLSEEK_FAILED:
-		ret = -EINVAL;
-		break;
-	case EXT2_ET_NO_DIRECTORY:
-		ret = -ENOTDIR;
-		break;
-	case EXT2_ET_FILE_NOT_FOUND:
-		ret = -ENOENT;
-		break;
-	case EXT2_ET_DIR_NO_SPACE:
-		is_err = 1;
-		*//* fallthrough *//*
-	case EXT2_ET_TOOSMALL:
-	case EXT2_ET_BLOCK_ALLOC_FAIL:
-	case EXT2_ET_INODE_ALLOC_FAIL:
-	case EXT2_ET_EA_NO_SPACE:
-		ret = -ENOSPC;
-		break;
-	case EXT2_ET_SYMLINK_LOOP:
-		ret = -EMLINK;
-		break;
-	case EXT2_ET_FILE_TOO_BIG:
-		ret = -EFBIG;
-		break;
-	case EXT2_ET_TDB_ERR_EXISTS:
-	case EXT2_ET_FILE_EXISTS:
-		ret = -EEXIST;
-		break;
-	case EXT2_ET_MMP_FAILED:
-	case EXT2_ET_MMP_FSCK_ON:
-		ret = -EBUSY;
-		break;
-	case EXT2_ET_EA_KEY_NOT_FOUND:
+    /* Translate ext2 error to unix error code */
+    if (err < EXT2_ET_BASE)
+        goto no_translation;
+    switch (err) {
+        case EXT2_ET_NO_MEMORY:
+        case EXT2_ET_TDB_ERR_OOM:
+            ret = -ENOMEM;
+            break;
+        case EXT2_ET_INVALID_ARGUMENT:
+        case EXT2_ET_LLSEEK_FAILED:
+            ret = -EINVAL;
+            break;
+        case EXT2_ET_NO_DIRECTORY:
+            ret = -ENOTDIR;
+            break;
+        case EXT2_ET_FILE_NOT_FOUND:
+            ret = -ENOENT;
+            break;
+        case EXT2_ET_DIR_NO_SPACE:
+            is_err = 1;
+            /* fallthrough */
+        case EXT2_ET_TOOSMALL:
+        case EXT2_ET_BLOCK_ALLOC_FAIL:
+        case EXT2_ET_INODE_ALLOC_FAIL:
+        case EXT2_ET_EA_NO_SPACE:
+            ret = -ENOSPC;
+            break;
+        case EXT2_ET_SYMLINK_LOOP:
+            ret = -EMLINK;
+            break;
+        case EXT2_ET_FILE_TOO_BIG:
+            ret = -EFBIG;
+            break;
+        case EXT2_ET_TDB_ERR_EXISTS:
+        case EXT2_ET_FILE_EXISTS:
+            ret = -EEXIST;
+            break;
+        case EXT2_ET_MMP_FAILED:
+        case EXT2_ET_MMP_FSCK_ON:
+            ret = -EBUSY;
+            break;
+        case EXT2_ET_EA_KEY_NOT_FOUND:
 #ifdef ENODATA
-		ret = -ENODATA;
+            ret = -ENODATA;
 #else
-		ret = -ENOENT;
+            ret = -ENOENT;
 #endif
-		break;
-	*//* Sometimes fuse returns a garbage file handle pointer to us... *//*
-	case EXT2_ET_MAGIC_EXT2_FILE:
-		ret = -EFAULT;
-		break;
-	case EXT2_ET_UNIMPLEMENTED:
-		ret = -EOPNOTSUPP;
-		break;
-	default:
-		is_err = 1;
-		ret = -EIO;
-		break;
-	}*/
-/*
-no_translation:
-	if (!is_err)
-		return ret;
+            break;
+            /* Sometimes fuse returns a garbage file handle pointer to us... */
+        case EXT2_ET_MAGIC_EXT2_FILE:
+            ret = -EFAULT;
+            break;
+        case EXT2_ET_UNIMPLEMENTED:
+            ret = -EOPNOTSUPP;
+            break;
+        default:
+            is_err = 1;
+            ret = -EIO;
+            break;
+    }
 
-	if (ino)
-		fprintf(ff->err_fp, "FUSE2FS (%s): %s (inode #%d) at %s:%d.\n",
-			fs->device_name ? fs->device_name : "???",
-			error_message(err), ino, file, line);
-	else
-		fprintf(ff->err_fp, "FUSE2FS (%s): %s at %s:%d.\n",
-			fs->device_name ? fs->device_name : "???",
-			error_message(err), file, line);
-	fflush(ff->err_fp);
+    no_translation:
+    if (!is_err)
+        return ret;
 
-	*//* Make a note in the error log *//*
-	get_now(&now);
-	fs->super->s_last_error_time = now.tv_sec;
-	fs->super->s_last_error_ino = ino;
-	fs->super->s_last_error_line = line;
-	fs->super->s_last_error_block = err; *//* Yeah... *//*
-	strncpy((char *)fs->super->s_last_error_func, file,
-		sizeof(fs->super->s_last_error_func));
-	if (fs->super->s_first_error_time == 0) {
-		fs->super->s_first_error_time = now.tv_sec;
-		fs->super->s_first_error_ino = ino;
-		fs->super->s_first_error_line = line;
-		fs->super->s_first_error_block = err;
-		strncpy((char *)fs->super->s_first_error_func, file,
-			sizeof(fs->super->s_first_error_func));
-	}
+    if (ino)
+        fprintf(ff->err_fp, "FUSE2FS (%s): %s (inode #%d) at %s:%d.\n",
+                fs->device_name ? fs->device_name : "???",
+                error_message(err), ino, file, line);
+    else
+        fprintf(ff->err_fp, "FUSE2FS (%s): %s at %s:%d.\n",
+                fs->device_name ? fs->device_name : "???",
+                error_message(err), file, line);
+    fflush(ff->err_fp);
 
-	fs->super->s_error_count++;
-	ext2fs_mark_super_dirty(fs);
-	ext2fs_flush(fs);
-	if (ff->panic_on_error)
-		abort();
+    /* Make a note in the error log */
+    get_now(&now);
+    fs->super->s_last_error_time = now.tv_sec;
+    fs->super->s_last_error_ino = ino;
+    fs->super->s_last_error_line = line;
+    fs->super->s_last_error_block = err; /* Yeah... */
+    strncpy((char *)fs->super->s_last_error_func, file,
+            sizeof(fs->super->s_last_error_func));
+    if (fs->super->s_first_error_time == 0) {
+        fs->super->s_first_error_time = now.tv_sec;
+        fs->super->s_first_error_ino = ino;
+        fs->super->s_first_error_line = line;
+        fs->super->s_first_error_block = err;
+        strncpy((char *)fs->super->s_first_error_func, file,
+                sizeof(fs->super->s_first_error_func));
+    }
 
-	return ret;*/
-    return 0;
+    fs->super->s_error_count++;
+    ext2fs_mark_super_dirty(fs);
+    ext2fs_flush(fs);
+    if (ff->panic_on_error)
+        abort();
+
+    return ret;
 }
