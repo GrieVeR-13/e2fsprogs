@@ -31,7 +31,10 @@
 #endif
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include <fuse.h>
+#include "FuseConfig.h"
+#include "FuseFileSystemJni.h"
+#include "fuse_opt.h"
+#include "ext2fs/ext2_err.h"
 #include <inttypes.h>
 #include "ext2fs/ext2fs.h"
 #include "ext2fs/ext2_fs.h"
@@ -60,6 +63,8 @@
 #define P_(singular, plural, n) ((n) == 1 ? (singular) : (plural))
 #endif
 
+#include "CFuseSession.h"
+
 static ext2_filsys global_fs; /* Try not to use this directly */
 
 #undef DEBUG
@@ -71,6 +76,7 @@ static ext2_filsys global_fs; /* Try not to use this directly */
 #else
 # define dbg_printf(f, a...)
 #endif
+
 
 #if FUSE_VERSION >= FUSE_MAKE_VERSION(2, 8)
 # ifdef _IOR
@@ -94,7 +100,6 @@ static ext2_filsys global_fs; /* Try not to use this directly */
 #endif
 
 errcode_t ext2fs_run_ext3_journal(ext2_filsys *fs);
-
 #ifdef CONFIG_JBD_DEBUG		/* Enabled by configure --enable-jbd-debug */
 int journal_enable_debug = -1;
 #endif
@@ -366,6 +371,12 @@ static int __translate_error(ext2_filsys fs, errcode_t err, ext2_ino_t ino,
  * This macro checks if a certain field fits in the inode. Note that
  * inode-size = GOOD_OLD_INODE_SIZE + i_extra_isize
  */
+#define EXT4_FITS_IN_INODE2(ext4_inode_type, ext4_inode, field)		\
+	((offsetof(ext4_inode_type, field) +	\
+	  sizeof((ext4_inode)->field))			\
+	 <= ((size_t) EXT2_GOOD_OLD_INODE_SIZE +		\
+	    (ext4_inode)->i_extra_isize))		\
+
 #define EXT4_FITS_IN_INODE(ext4_inode, field)		\
 	((offsetof(typeof(*ext4_inode), field) +	\
 	  sizeof((ext4_inode)->field))			\
@@ -396,12 +407,13 @@ static inline void ext4_decode_extra_time(struct timespec *time, __u32 extra)
 }
 
 #define EXT4_INODE_SET_XTIME(xtime, timespec, raw_inode)		       \
-do {									       \
-	(raw_inode)->xtime = (timespec)->tv_sec;			       \
-	if (EXT4_FITS_IN_INODE(raw_inode, xtime ## _extra))		       \
-		(raw_inode)->xtime ## _extra =				       \
-				ext4_encode_extra_time(timespec);	       \
-} while (0)
+//do {									       \
+//	(raw_inode)->xtime = (timespec)->tv_sec;			       \
+//	if (EXT4_FITS_IN_INODE(raw_inode, xtime ## _extra))		       \
+//		(raw_inode)->xtime ## _extra =				       \
+//				ext4_encode_extra_time(timespec);	       \
+//} while (0)
+//todoe
 
 #define EXT4_EINODE_SET_XTIME(xtime, timespec, raw_inode)		       \
 do {									       \
@@ -413,14 +425,16 @@ do {									       \
 } while (0)
 
 #define EXT4_INODE_GET_XTIME(xtime, timespec, raw_inode)		       \
-do {									       \
-	(timespec)->tv_sec = (signed)((raw_inode)->xtime);		       \
-	if (EXT4_FITS_IN_INODE(raw_inode, xtime ## _extra))		       \
-		ext4_decode_extra_time((timespec),			       \
-				       (raw_inode)->xtime ## _extra);	       \
-	else								       \
-		(timespec)->tv_nsec = 0;				       \
-} while (0)
+//do {									       \
+//	(timespec)->tv_sec = (signed)((raw_inode)->xtime);		       \
+//	if (EXT4_FITS_IN_INODE(raw_inode, xtime ## _extra))		       \
+//		ext4_decode_extra_time((timespec),			       \
+//				       (raw_inode)->xtime ## _extra);	       \
+//	else								       \
+//		(timespec)->tv_nsec = 0;				       \
+//} while (0)
+//todoe
+
 
 #define EXT4_EINODE_GET_XTIME(xtime, timespec, raw_inode)		       \
 do {									       \
@@ -449,12 +463,16 @@ static void increment_version(struct ext2_inode_large *inode)
 {
 	__u64 ver;
 
+
+//    offsetof(typeof(*inode), i_version_hi);
+
+
 	ver = inode->osd1.linux1.l_i_version;
-	if (EXT4_FITS_IN_INODE(inode, i_version_hi))
+	if (EXT4_FITS_IN_INODE2(struct ext2_inode_large, inode, i_version_hi))
 		ver |= (__u64)inode->i_version_hi << 32;
 	ver++;
 	inode->osd1.linux1.l_i_version = ver;
-	if (EXT4_FITS_IN_INODE(inode, i_version_hi))
+	if (EXT4_FITS_IN_INODE2(struct ext2_inode_large, inode, i_version_hi))
 		inode->i_version_hi = ver >> 32;
 }
 
@@ -462,11 +480,12 @@ static void init_times(struct ext2_inode_large *inode)
 {
 	struct timespec now;
 
-	get_now(&now);
-	EXT4_INODE_SET_XTIME(i_atime, &now, inode);
-	EXT4_INODE_SET_XTIME(i_ctime, &now, inode);
-	EXT4_INODE_SET_XTIME(i_mtime, &now, inode);
-	EXT4_EINODE_SET_XTIME(i_crtime, &now, inode);
+    abort();
+	get_now(&now); //todoe
+//	EXT4_INODE_SET_XTIME(i_atime, &now, inode);
+//	EXT4_INODE_SET_XTIME(i_ctime, &now, inode);
+//	EXT4_INODE_SET_XTIME(i_mtime, &now, inode);
+//	EXT4_EINODE_SET_XTIME(i_crtime, &now, inode);
 	increment_version(inode);
 }
 
@@ -700,7 +719,7 @@ static int check_inum_access(ext2_filsys fs, ext2_ino_t ino, mode_t mask)
 	return -EACCES;
 }
 
-static void op_destroy(void *p EXT2FS_ATTR((unused)))
+static int op_destroy(void *p EXT2FS_ATTR((unused)), int isForce)
 {
 	struct fuse_context *ctxt = fuse_get_context();
 	struct fuse2fs *ff = (struct fuse2fs *)ctxt->private_data;
@@ -709,7 +728,7 @@ static void op_destroy(void *p EXT2FS_ATTR((unused)))
 
 	if (ff->magic != FUSE2FS_MAGIC) {
 		translate_error(global_fs, 0, EXT2_ET_BAD_MAGIC);
-		return;
+		return 0;
 	}
 	fs = ff->fs;
 	dbg_printf("%s: dev=%s\n", __func__, fs->device_name);
@@ -726,6 +745,7 @@ static void op_destroy(void *p EXT2FS_ATTR((unused)))
 		if (err)
 			translate_error(fs, 0, err);
 	}
+    return 0; //todoe
 }
 
 static void *op_init(struct fuse_conn_info *conn)
@@ -2169,7 +2189,7 @@ static int op_read(const char *path EXT2FS_ATTR((unused)), char *buf,
 
 	FUSE2FS_CHECK_CONTEXT(ff);
 	fs = ff->fs;
-	FUSE2FS_CHECK_MAGIC(fs, fh, FUSE2FS_FILE_MAGIC);
+    FUSE2FS_CHECK_MAGIC(fs, fh, FUSE2FS_FILE_MAGIC);
 	dbg_printf("%s: ino=%d off=%jd len=%jd\n", __func__, fh->ino, offset,
 		   len);
 	pthread_mutex_lock(&ff->bfl);
@@ -3607,9 +3627,9 @@ static struct fuse_operations fs_ops = {
 	.fgetattr = op_fgetattr,
 	.utimens = op_utimens,
 #if FUSE_VERSION >= FUSE_MAKE_VERSION(2, 9)
-# if defined(UTIME_NOW) || defined(UTIME_OMIT)
-	.flag_utime_omit_ok = 1,
-# endif
+//# if defined(UTIME_NOW) || defined(UTIME_OMIT)
+//	.flag_utime_omit_ok = 1,
+//# endif
 #endif
 	.bmap = op_bmap,
 #ifdef SUPERFLUOUS
@@ -3618,10 +3638,10 @@ static struct fuse_operations fs_ops = {
 #endif
 #if FUSE_VERSION >= FUSE_MAKE_VERSION(2, 8)
 	.ioctl = op_ioctl,
-	.flag_nullpath_ok = 1,
+//	.flag_nullpath_ok = 1,
 #endif
 #if FUSE_VERSION >= FUSE_MAKE_VERSION(2, 9)
-	.flag_nopath = 1,
+//	.flag_nopath = 1,
 # ifdef SUPPORT_FALLOCATE
 	.fallocate = op_fallocate,
 # endif
@@ -3707,7 +3727,7 @@ static int fuse2fs_opt_proc(void *data, const char *arg,
 			outargs->argv[0]);
 		if (key == FUSE2FS_HELPFULL) {
 			fuse_opt_add_arg(outargs, "-ho");
-			fuse_main(outargs->argc, outargs->argv, &fs_ops, NULL);
+//			fuse_main(outargs->argc, outargs->argv, &fs_ops, NULL);
 		} else {
 			fprintf(stderr, "Try --helpfull to get a list of "
 				"all flags, including the FUSE options.\n");
@@ -3718,35 +3738,37 @@ static int fuse2fs_opt_proc(void *data, const char *arg,
 		fprintf(stderr, "fuse2fs %s (%s)\n", E2FSPROGS_VERSION,
 			E2FSPROGS_DATE);
 		fuse_opt_add_arg(outargs, "--version");
-		fuse_main(outargs->argc, outargs->argv, &fs_ops, NULL);
+//		fuse_main(outargs->argc, outargs->argv, &fs_ops, NULL);
 		exit(0);
 	}
 	return 1;
 }
 
-int main(int argc, char *argv[])
+int mainExt4(int argc, char *argv[], void *fuseSession)
 {
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
-	struct fuse2fs fctx;
-	errcode_t err;
+    struct fuse2fs *fctx = malloc(sizeof(struct fuse2fs));
+
+    errcode_t err;
 	char *logfile;
 	char extra_args[BUFSIZ];
 	int ret = 0;
 	int flags = EXT2_FLAG_64BITS | EXT2_FLAG_THREADS | EXT2_FLAG_EXCLUSIVE;
 
-	memset(&fctx, 0, sizeof(fctx));
-	fctx.magic = FUSE2FS_MAGIC;
+	memset(fctx, 0, sizeof(fctx));
+	fctx->magic = FUSE2FS_MAGIC;
 
-	fuse_opt_parse(&args, &fctx, fuse2fs_opts, fuse2fs_opt_proc);
-	if (fctx.device == NULL) {
+//	fuse_opt_parse(&args, &fctx, fuse2fs_opts, fuse2fs_opt_proc);
+    fctx->device = "/storage/emulated/0/Download/image.ext4";
+	if (fctx->device == NULL) {
 		fprintf(stderr, "Missing ext4 device/image\n");
 		fprintf(stderr, "See '%s -h' for usage\n", argv[0]);
 		exit(1);
 	}
 
-	if (fctx.norecovery)
-		fctx.ro = 1;
-	if (fctx.ro)
+	if (fctx->norecovery)
+		fctx->ro = 1;
+	if (fctx->ro)
 		printf("%s", _("Mounting read-only.\n"));
 
 #ifdef ENABLE_NLS
@@ -3761,52 +3783,52 @@ int main(int argc, char *argv[])
 	/* Set up error logging */
 	logfile = getenv("FUSE2FS_LOGFILE");
 	if (logfile) {
-		fctx.err_fp = fopen(logfile, "a");
-		if (!fctx.err_fp) {
+		fctx->err_fp = fopen(logfile, "a");
+		if (!fctx->err_fp) {
 			perror(logfile);
 			goto out;
 		}
 	} else
-		fctx.err_fp = stderr;
+		fctx->err_fp = stderr;
 
 	/* Will we allow users to allocate every last block? */
 	if (getenv("FUSE2FS_ALLOC_ALL_BLOCKS")) {
 		printf(_("%s: Allowing users to allocate all blocks. "
-		       "This is dangerous!\n"), fctx.device);
-		fctx.alloc_all_blocks = 1;
+		       "This is dangerous!\n"), fctx->device);
+		fctx->alloc_all_blocks = 1;
 	}
 
 	/* Start up the fs (while we still can use stdout) */
 	ret = 2;
-	if (!fctx.ro)
+	if (!fctx->ro)
 		flags |= EXT2_FLAG_RW;
 	char options[50];
-	sprintf(options, "offset=%lu", fctx.offset);
-	err = ext2fs_open2(fctx.device, options, flags, 0, 0, unix_io_manager,
+	sprintf(options, "offset=%lu", fctx->offset);
+	err = ext2fs_open2(fctx->device, options, flags, 0, 0, unix_io_manager,
 			   &global_fs);
 	if (err) {
-		printf(_("%s: %s.\n"), fctx.device, error_message(err));
-		printf(_("Please run e2fsck -fy %s.\n"), fctx.device);
+		printf(_("%s: %s.\n"), fctx->device, error_message(err));
+		printf(_("Please run e2fsck -fy %s.\n"), fctx->device);
 		goto out;
 	}
-	fctx.fs = global_fs;
+	fctx->fs = global_fs;
 	global_fs->priv_data = &fctx;
 
 	ret = 3;
-
-	if (ext2fs_has_feature_journal_needs_recovery(global_fs->super)) {
-		if (fctx.norecovery) {
+//todoe
+/*	if (ext2fs_has_feature_journal_needs_recovery(global_fs->super)) {
+		if (fctx->norecovery) {
 			printf(_("%s: mounting read-only without "
 				 "recovering journal\n"),
-			       fctx.device);
-		} else if (!fctx.ro) {
-			printf(_("%s: recovering journal\n"), fctx.device);
+			       fctx->device);
+		} else if (!fctx->ro) {
+			printf(_("%s: recovering journal\n"), fctx->device);
 			err = ext2fs_run_ext3_journal(&global_fs);
 			if (err) {
-				printf(_("%s: %s.\n"), fctx.device,
+				printf(_("%s: %s.\n"), fctx->device,
 				       error_message(err));
 				printf(_("Please run e2fsck -fy %s.\n"),
-				       fctx.device);
+				       fctx->device);
 				goto out;
 			}
 			ext2fs_clear_feature_journal_needs_recovery(global_fs->super);
@@ -3816,12 +3838,12 @@ int main(int argc, char *argv[])
 			       "`e2fsck -E journal_only' is required.\n"));
 			goto out;
 		}
-	}
+	}*/
 
-	if (!fctx.ro) {
+	if (!fctx->ro) {
 		if (ext2fs_has_feature_journal(global_fs->super))
 			printf(_("%s: Writing to the journal is not supported.\n"),
-			       fctx.device);
+			       fctx->device);
 		err = ext2fs_read_inode_bitmap(global_fs);
 		if (err) {
 			translate_error(global_fs, 0, err);
@@ -3857,25 +3879,25 @@ int main(int argc, char *argv[])
 	}
 
 	/* Initialize generation counter */
-	get_random_bytes(&fctx.next_generation, sizeof(unsigned int));
+	get_random_bytes(&fctx->next_generation, sizeof(unsigned int));
 
 	/* Set up default fuse parameters */
 	snprintf(extra_args, BUFSIZ, "-okernel_cache,subtype=ext4,use_ino,"
 		 "fsname=%s,attr_timeout=0" FUSE_PLATFORM_OPTS,
-		 fctx.device);
-	if (fctx.no_default_opts == 0)
+		 fctx->device);
+/*	if (fctx->no_default_opts == 0)
 		fuse_opt_add_arg(&args, extra_args);
 
-	if (fctx.fakeroot) {
+	if (fctx->fakeroot) {
 #ifdef HAVE_MOUNT_NODEV
 		fuse_opt_add_arg(&args,"-onodev");
 #endif
 #ifdef HAVE_MOUNT_NOSUID
 		fuse_opt_add_arg(&args,"-onosuid");
 #endif
-	}
+	}*/
 
-	if (fctx.debug) {
+	if (fctx->debug) {
 		int	i;
 
 		printf("fuse arguments:");
@@ -3884,11 +3906,13 @@ int main(int argc, char *argv[])
 		printf("\n");
 	}
 
-	pthread_mutex_init(&fctx.bfl, NULL);
-	fuse_main(args.argc, args.argv, &fs_ops, &fctx);
-	pthread_mutex_destroy(&fctx.bfl);
+	pthread_mutex_init(&fctx->bfl, NULL);
+
+	fuseSession = cfuse_main(args.argc, args.argv, &fs_ops, &fctx);
+//	pthread_mutex_destroy(&fctx->bfl);
 
 	ret = 0;
+    return ret;
 out:
 	if (global_fs) {
 		err = ext2fs_close(global_fs);
@@ -3899,15 +3923,27 @@ out:
 	return ret;
 }
 
+int ext4FuseClose(struct fuse2fs *fctx) {
+    pthread_mutex_destroy(&fctx->bfl);
+    if (global_fs) { //todoe global
+        errcode_t err = ext2fs_close(global_fs);
+        if (err)
+            com_err("fuse ext4", err, "while closing fs");
+        global_fs = NULL;
+    }
+    free(fctx);
+    return 0;
+}
+
 static int __translate_error(ext2_filsys fs, errcode_t err, ext2_ino_t ino,
 			     const char *file, int line)
 {
-	struct timespec now;
+	/*struct timespec now;
 	int ret = err;
 	struct fuse2fs *ff = fs->priv_data;
 	int is_err = 0;
 
-	/* Translate ext2 error to unix error code */
+	*//* Translate ext2 error to unix error code *//*
 	if (err < EXT2_ET_BASE)
 		goto no_translation;
 	switch (err) {
@@ -3927,7 +3963,7 @@ static int __translate_error(ext2_filsys fs, errcode_t err, ext2_ino_t ino,
 		break;
 	case EXT2_ET_DIR_NO_SPACE:
 		is_err = 1;
-		/* fallthrough */
+		*//* fallthrough *//*
 	case EXT2_ET_TOOSMALL:
 	case EXT2_ET_BLOCK_ALLOC_FAIL:
 	case EXT2_ET_INODE_ALLOC_FAIL:
@@ -3955,7 +3991,7 @@ static int __translate_error(ext2_filsys fs, errcode_t err, ext2_ino_t ino,
 		ret = -ENOENT;
 #endif
 		break;
-	/* Sometimes fuse returns a garbage file handle pointer to us... */
+	*//* Sometimes fuse returns a garbage file handle pointer to us... *//*
 	case EXT2_ET_MAGIC_EXT2_FILE:
 		ret = -EFAULT;
 		break;
@@ -3966,8 +4002,8 @@ static int __translate_error(ext2_filsys fs, errcode_t err, ext2_ino_t ino,
 		is_err = 1;
 		ret = -EIO;
 		break;
-	}
-
+	}*/
+/*
 no_translation:
 	if (!is_err)
 		return ret;
@@ -3982,12 +4018,12 @@ no_translation:
 			error_message(err), file, line);
 	fflush(ff->err_fp);
 
-	/* Make a note in the error log */
+	*//* Make a note in the error log *//*
 	get_now(&now);
 	fs->super->s_last_error_time = now.tv_sec;
 	fs->super->s_last_error_ino = ino;
 	fs->super->s_last_error_line = line;
-	fs->super->s_last_error_block = err; /* Yeah... */
+	fs->super->s_last_error_block = err; *//* Yeah... *//*
 	strncpy((char *)fs->super->s_last_error_func, file,
 		sizeof(fs->super->s_last_error_func));
 	if (fs->super->s_first_error_time == 0) {
@@ -4005,5 +4041,6 @@ no_translation:
 	if (ff->panic_on_error)
 		abort();
 
-	return ret;
+	return ret;*/
+    return 0;
 }
