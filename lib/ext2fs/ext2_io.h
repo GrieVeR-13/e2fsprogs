@@ -13,6 +13,7 @@
 #define _EXT2FS_EXT2_IO_H
 
 #include <ext2fs/ext2_types.h>
+#include <jni.h>
 
 /*
  * ext2_loff_t is defined here since unix_io.c needs it.
@@ -76,7 +77,7 @@ struct struct_io_stats {
 struct struct_io_manager {
 	errcode_t magic;
 	const char *name;
-	errcode_t (*open)(const char *name, int flags, io_channel *channel);
+	errcode_t (*open)(jobject name, int flags, io_channel *channel);
 	errcode_t (*close)(io_channel channel);
 	errcode_t (*set_blksize)(io_channel channel, int blksize);
 	errcode_t (*read_blk)(io_channel channel, unsigned long block,

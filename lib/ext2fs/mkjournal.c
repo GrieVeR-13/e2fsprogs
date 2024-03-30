@@ -432,8 +432,9 @@ errcode_t ext2fs_add_journal_device(ext2_filsys fs, ext2_filsys journal_dev)
 	__u32		i, nr_users;
 
 	/* Make sure the device exists and is a block device */
-	if (stat(journal_dev->device_name, &st) < 0)
-		return errno;
+    abort();
+//	if (stat(journal_dev->device_name, &st) < 0)
+//		return errno;
 
 	if (!S_ISBLK(st.st_mode))
 		return EXT2_ET_JOURNAL_NOT_BLOCK; /* Must be a block device */
@@ -497,13 +498,13 @@ errcode_t ext2fs_add_journal_inode3(ext2_filsys fs, struct ext2fs_journal_params
 	char			jfile[1024];
 	int			mount_flags;
 	int			fd = -1;
-
+    abort();
 	if (flags & EXT2_MKJOURNAL_NO_MNT_CHECK)
 		mount_flags = 0;
-	else if ((retval = ext2fs_check_mount_point(fs->device_name,
+	/*else if ((retval = ext2fs_check_mount_point(fs->device_name,
 						    &mount_flags,
 						    jfile, sizeof(jfile)-10)))
-		return retval;
+		return retval;*/
 
 	if (mount_flags & EXT2_MF_MOUNTED) {
 #if HAVE_EXT2_IOCTLS

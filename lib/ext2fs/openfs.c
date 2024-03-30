@@ -113,7 +113,7 @@ static void block_sha_map_free_entry(void *data)
  *	EXT2_FLAG_64BITS - Allow 64-bit bitfields (needed for large
  *				filesystems)
  */
-errcode_t ext2fs_open2(const char *name, const char *io_options,
+errcode_t ext2fs_open2(jobject raio, const char *io_options,
 		       int flags, int superblock,
 		       unsigned int block_size, io_manager manager,
 		       ext2_filsys *ret_fs)
@@ -124,7 +124,7 @@ errcode_t ext2fs_open2(const char *name, const char *io_options,
 	__u32		features;
 	unsigned int	blocks_per_group, io_flags;
 	blk64_t		group_block, blk;
-	char		*dest, *cp;
+	char		*dest/*, *cp*/;
 	int		group_zero_adjust = 0;
 	unsigned int	inode_size;
 	__u64		groups_cnt;
@@ -153,15 +153,17 @@ errcode_t ext2fs_open2(const char *name, const char *io_options,
 	if (time_env)
 		fs->now = strtoul(time_env, NULL, 0);
 
-	retval = ext2fs_get_mem(strlen(name)+1, &fs->device_name);
+//	retval = ext2fs_get_mem(strlen(name)+1, &fs->device_name);
 	if (retval)
 		goto cleanup;
-	strcpy(fs->device_name, name);
-	cp = strchr(fs->device_name, '?');
-	if (!io_options && cp) {
-		*cp++ = 0;
-		io_options = cp;
-	}
+//	strcpy(fs->device_name, name);
+    fs->raio = raio;
+
+//    cp = strchr(fs->device_name, '?');
+//	if (!io_options && cp) {
+//		*cp++ = 0;
+//		io_options = cp;
+//	}
 
 	io_flags = 0;
 	if (flags & EXT2_FLAG_RW)
@@ -172,7 +174,7 @@ errcode_t ext2fs_open2(const char *name, const char *io_options,
 		io_flags |= IO_FLAG_DIRECT_IO;
 	if (flags & EXT2_FLAG_THREADS)
 		io_flags |= IO_FLAG_THREADS;
-	retval = manager->open(fs->device_name, io_flags, &fs->io);
+	retval = manager->open(fs->raio, io_flags, &fs->io);
 	if (retval)
 		goto cleanup;
 	if (io_options &&

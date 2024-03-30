@@ -32,7 +32,8 @@ errcode_t ext2fs_dup_handle(ext2_filsys src, ext2_filsys *dest)
 		return retval;
 
 	*fs = *src;
-	fs->device_name = 0;
+//	fs->device_name = 0;
+	fs->raio = 0;
 	fs->super = 0;
 	fs->orig_super = 0;
 	fs->group_desc = 0;
@@ -48,10 +49,11 @@ errcode_t ext2fs_dup_handle(ext2_filsys src, ext2_filsys *dest)
 	if (fs->icache)
 		fs->icache->refcount++;
 
-	retval = ext2fs_get_mem(strlen(src->device_name)+1, &fs->device_name);
-	if (retval)
-		goto errout;
-	strcpy(fs->device_name, src->device_name);
+    abort();
+//	retval = ext2fs_get_mem(strlen(src->device_name)+1, &fs->device_name);
+//	if (retval)
+//		goto errout;
+//	strcpy(fs->device_name, src->device_name);
 
 	retval = ext2fs_get_mem(SUPERBLOCK_SIZE, &fs->super);
 	if (retval)

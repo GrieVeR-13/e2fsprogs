@@ -64,6 +64,7 @@
 #endif
 
 #include "CFuseSession.h"
+#include <jni.h>
 
 static ext2_filsys global_fs; /* Try not to use this directly */
 
@@ -321,7 +322,8 @@ struct fuse2fs {
 	unsigned long magic;
 	ext2_filsys fs;
 	pthread_mutex_t bfl;
-	char *device;
+    jobject raio;
+
 	int ro;
 	int debug;
 	int no_default_opts;
@@ -730,7 +732,7 @@ static int op_destroy(void *p EXT2FS_ATTR((unused)), int isForce)
 		return 0;
 	}
 	fs = ff->fs;
-	dbg_printf("%s: dev=%s\n", __func__, fs->device_name);
+	dbg_printf("%s: dev=%s\n", __func__, "fs->device_name");
 	if (fs->flags & EXT2_FLAG_RW) {
 		fs->super->s_state |= EXT2_VALID_FS;
 		if (fs->super->s_error_count)
@@ -759,7 +761,7 @@ static void *op_init(struct fuse_conn_info *conn)
 		return NULL;
 	}
 	fs = ff->fs;
-	dbg_printf("%s: dev=%s\n", __func__, fs->device_name);
+	dbg_printf("%s: dev=%s\n", __func__, "fs->device_name");
 #ifdef FUSE_CAP_IOCTL_DIR
 	conn->want |= FUSE_CAP_IOCTL_DIR;
 #endif
@@ -3591,6 +3593,7 @@ out:
 # endif /* SUPPORT_FALLOCATE */
 #endif /* FUSE 29 */
 
+//fuse_operations
 static struct fuse_operations fs_ops = {
 	.init = op_init,
 	.destroy = op_destroy,
@@ -3698,10 +3701,10 @@ static int fuse2fs_opt_proc(void *data, const char *arg,
 
 	switch (key) {
 	case FUSE_OPT_KEY_NONOPT:
-		if (!ff->device) {
+		/*if (!ff->device) {
 			ff->device = strdup(arg);
 			return 0;
-		}
+		}*/
 		return 1;
 	case FUSE2FS_HELP:
 	case FUSE2FS_HELPFULL:
@@ -3758,8 +3761,7 @@ int mainExt4(int argc, char *argv[], void **fuseSession)
 	fctx->magic = FUSE2FS_MAGIC;
 
 //	fuse_opt_parse(&args, &fctx, fuse2fs_opts, fuse2fs_opt_proc);
-    fctx->device = "/storage/emulated/0/Download/image.ext4";
-	if (fctx->device == NULL) {
+	if (fctx->raio == NULL) {
 		fprintf(stderr, "Missing ext4 device/image\n");
 		fprintf(stderr, "See '%s -h' for usage\n", argv[0]);
 		exit(1);
@@ -3793,7 +3795,7 @@ int mainExt4(int argc, char *argv[], void **fuseSession)
 	/* Will we allow users to allocate every last block? */
 	if (getenv("FUSE2FS_ALLOC_ALL_BLOCKS")) {
 		printf(_("%s: Allowing users to allocate all blocks. "
-		       "This is dangerous!\n"), fctx->device);
+		       "This is dangerous!\n"), "fctx->device");
 		fctx->alloc_all_blocks = 1;
 	}
 
@@ -3803,11 +3805,11 @@ int mainExt4(int argc, char *argv[], void **fuseSession)
 		flags |= EXT2_FLAG_RW;
 	char options[50];
 	sprintf(options, "offset=%lu", fctx->offset);
-	err = ext2fs_open2(fctx->device, options, flags, 0, 0, unix_io_manager,
+	err = ext2fs_open2(fctx->raio, options, flags, 0, 0, unix_io_manager,
 			   &global_fs);
 	if (err) {
-		printf(_("%s: %s.\n"), fctx->device, error_message(err));
-		printf(_("Please run e2fsck -fy %s.\n"), fctx->device);
+		printf(_("%s: %s.\n"), "fctx->device", error_message(err));
+		printf(_("Please run e2fsck -fy %s.\n"), "fctx->device");
 		goto out;
 	}
 	fctx->fs = global_fs;
@@ -3842,7 +3844,7 @@ int mainExt4(int argc, char *argv[], void **fuseSession)
 	if (!fctx->ro) {
 		if (ext2fs_has_feature_journal(global_fs->super))
 			printf(_("%s: Writing to the journal is not supported.\n"),
-			       fctx->device);
+			       "fctx->device");
 		err = ext2fs_read_inode_bitmap(global_fs);
 		if (err) {
 			translate_error(global_fs, 0, err);
@@ -3883,7 +3885,7 @@ int mainExt4(int argc, char *argv[], void **fuseSession)
 	/* Set up default fuse parameters */
 	snprintf(extra_args, BUFSIZ, "-okernel_cache,subtype=ext4,use_ino,"
 		 "fsname=%s,attr_timeout=0" FUSE_PLATFORM_OPTS,
-		 fctx->device);
+		 "fctx->device");
 /*	if (fctx->no_default_opts == 0)
 		fuse_opt_add_arg(&args, extra_args);
 
@@ -4009,11 +4011,11 @@ static int __translate_error(ext2_filsys fs, errcode_t err, ext2_ino_t ino,
 
     if (ino)
         fprintf(ff->err_fp, "FUSE2FS (%s): %s (inode #%d) at %s:%d.\n",
-                fs->device_name ? fs->device_name : "???",
+                /*fs->device_name ? fs->device_name :*/ "???",
                 error_message(err), ino, file, line);
     else
         fprintf(ff->err_fp, "FUSE2FS (%s): %s at %s:%d.\n",
-                fs->device_name ? fs->device_name : "???",
+                /*fs->device_name ? fs->device_name :*/ "???",
                 error_message(err), file, line);
     fflush(ff->err_fp);
 
