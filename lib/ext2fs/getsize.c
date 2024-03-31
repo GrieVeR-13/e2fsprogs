@@ -138,10 +138,11 @@ static int valid_offset (int fd, ext2_loff_t offset)
 {
 	char ch;
 
-	if (ext2fs_llseek (fd, offset, 0) < 0)
+    abort();
+	/*if (ext2fs_llseek (fd, offset, 0) < 0)
 		return 0;
 	if (read (fd, &ch, 1) < 1)
-		return 0;
+		return 0;*/
 	return 1;
 }
 

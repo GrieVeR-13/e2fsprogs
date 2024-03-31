@@ -107,6 +107,7 @@ typedef __u32 __bitwise		ext2_dirhash_t;
 #endif
 
 #include "hashmap.h"
+#include <jni.h>
 
 /*
  * Portability help for Microsoft Visual C++
@@ -247,7 +248,8 @@ struct struct_ext2_filsys {
 	errcode_t			magic;
 	io_channel			io;
 	int				flags;
-	char *				device_name;
+	jobject 				raio;
+//	char *				device_name;
 	struct ext2_super_block	* 	super;
 	unsigned int			blocksize;
 	int				fragsize;
@@ -1694,7 +1696,7 @@ extern int ext2fs_journal_sb_start(int blocksize);
 extern errcode_t ext2fs_open(const char *name, int flags, int superblock,
 			     unsigned int block_size, io_manager manager,
 			     ext2_filsys *ret_fs);
-extern errcode_t ext2fs_open2(const char *name, const char *io_options,
+extern errcode_t ext2fs_open2(jobject raio, const char *io_options,
 			      int flags, int superblock,
 			      unsigned int block_size, io_manager manager,
 			      ext2_filsys *ret_fs);

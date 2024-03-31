@@ -13,6 +13,7 @@
 #define _EXT2FS_EXT2_IO_H
 
 #include <ext2fs/ext2_types.h>
+#include <jni.h>
 
 /*
  * ext2_loff_t is defined here since unix_io.c needs it.
@@ -24,7 +25,7 @@ typedef long		ext2_loff_t;
 #endif
 
 /* llseek.c */
-ext2_loff_t ext2fs_llseek (int, ext2_loff_t, int);
+ext2_loff_t ext2fs_llseek (jobject , ext2_loff_t, int);
 
 typedef struct struct_io_manager *io_manager;
 typedef struct struct_io_channel *io_channel;
@@ -42,7 +43,8 @@ typedef struct struct_io_stats *io_stats;
 struct struct_io_channel {
 	errcode_t	magic;
 	io_manager	manager;
-	char		*name;
+    jobject raio;
+//	char		*name;
 	int		block_size;
 	errcode_t	(*read_error)(io_channel channel,
 				      unsigned long block,
@@ -76,7 +78,7 @@ struct struct_io_stats {
 struct struct_io_manager {
 	errcode_t magic;
 	const char *name;
-	errcode_t (*open)(const char *name, int flags, io_channel *channel);
+	errcode_t (*open)(jobject raio, int flags, io_channel *channel);
 	errcode_t (*close)(io_channel channel);
 	errcode_t (*set_blksize)(io_channel channel, int blksize);
 	errcode_t (*read_blk)(io_channel channel, unsigned long block,

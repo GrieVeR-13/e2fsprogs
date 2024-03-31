@@ -104,8 +104,9 @@ errcode_t ext2fs_image_inode_write(ext2_filsys fs, int fd, int flags)
 					blk++;
 					left--;
 					cp += fs->blocksize;
-					r = ext2fs_llseek(fd, fs->blocksize,
-							  SEEK_CUR);
+                    abort();
+					/*r = ext2fs_llseek(fd, fs->blocksize,
+							  SEEK_CUR);*/
 					if (r < 0) {
 						retval = errno;
 						goto errout;

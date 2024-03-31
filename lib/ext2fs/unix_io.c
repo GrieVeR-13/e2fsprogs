@@ -84,7 +84,8 @@
 #include "ext2_fs.h"
 #include "ext2fs.h"
 #include "ext2fsP.h"
-#include "util/uraio.h"
+#include "util/raio.h"
+#include "util/jniutil.h"
 
 /*
  * For checking structure magic numbers...
@@ -108,7 +109,8 @@ struct unix_cache {
 
 struct unix_private_data {
 	int	magic;
-	int	dev;
+	jobject raio;
+//	int	dev;
 	int	flags;
 	int	align;
 	int	access_time;
@@ -237,13 +239,14 @@ static errcode_t raw_read_blk(io_channel channel,
 	if (data->flags & IO_FLAG_FORCE_BOUNCE)
 		goto bounce_read;
 
+    JNIEnv *env = getEnv();
 #ifdef HAVE_PREAD64
 	/* Try an aligned pread */
 	if ((channel->align == 0) ||
 	    (IS_ALIGNED(buf, channel->align) &&
 	     IS_ALIGNED(location, channel->align) &&
 	     IS_ALIGNED(size, channel->align))) {
-		actual = uraio_pread_all(data->dev, buf, size, location);
+		actual = raio_pread_all(env, data->raio, buf, size, location);
 		if (actual == size)
 			return 0;
 		actual = 0;
@@ -267,7 +270,7 @@ static errcode_t raw_read_blk(io_channel channel,
 	     IS_ALIGNED(location, channel->align) &&
 	     IS_ALIGNED(size, channel->align))) {
 		mutex_lock(data, BOUNCE_MTX);
-		if (ext2fs_llseek(data->dev, location, SEEK_SET) < 0) {
+		if (ext2fs_llseek(data->raio, location, SEEK_SET) < 0) {
 			retval = errno ? errno : EXT2_ET_LLSEEK_FAILED;
 			goto error_unlock;
 		}
@@ -689,7 +692,7 @@ retry:
 #endif
 #endif
 
-static int ext2fs_open_file(const char *pathname, int flags, mode_t mode)
+/*static jobject ext2fs_open_file(jobject raio, int flags, mode_t mode)
 {
 	if (mode)
 #if defined(HAVE_OPEN64) && !defined(__OSX_AVAILABLE_BUT_DEPRECATED)
@@ -697,11 +700,13 @@ static int ext2fs_open_file(const char *pathname, int flags, mode_t mode)
 	else
 		return open64(pathname, flags);
 #else
-		return uraio_open(pathname, flags, mode);
+        return raio;
+//		return uraio_open(pathname, flags, mode);
 	else
-		return uraio_open(pathname, flags);
+        return raio;
+//		return uraio_open(pathname, flags);
 #endif
-}
+}*/
 
 /*int ext2fs_stat(const char *path, ext2fs_struct_stat *buf)
 {
@@ -723,7 +728,7 @@ static int ext2fs_fstat(int fd, ext2fs_struct_stat *buf)
 }
 
 
-static errcode_t unix_open_channel(const char *name, int fd,
+static errcode_t unix_open_channel(jobject raio,
 				   int flags, io_channel *channel,
 				   io_manager io_mgr)
 {
@@ -743,7 +748,7 @@ static errcode_t unix_open_channel(const char *name, int fd,
 	 * We need to make sure any previous errors in the block
 	 * device are thrown away, sigh.
 	 */
-	(void) uraio_fsync(fd);
+	(void) raio_fsync(getEnv(), raio);
 #endif
 
 	retval = ext2fs_get_mem(sizeof(struct struct_io_channel), &io);
@@ -756,11 +761,12 @@ static errcode_t unix_open_channel(const char *name, int fd,
 		goto cleanup;
 
 	io->manager = io_mgr;
-	retval = ext2fs_get_mem(strlen(name)+1, &io->name);
-	if (retval)
-		goto cleanup;
+//	retval = ext2fs_get_mem(strlen(name)+1, &io->name);
+//	if (retval)
+//		goto cleanup;
 
-	strcpy(io->name, name);
+//	strcpy(io->name, name);
+    io->raio = raio;
 	io->private_data = data;
 	io->block_size = 1024;
 	io->read_error = 0;
@@ -775,7 +781,7 @@ static errcode_t unix_open_channel(const char *name, int fd,
 	data->magic = EXT2_ET_MAGIC_UNIX_IO_CHANNEL;
 	data->io_stats.num_fields = 2;
 	data->flags = flags;
-	data->dev = fd;
+//	data->dev = fd;
 
 #if defined(O_DIRECT)
 	if (flags & IO_FLAG_DIRECT_IO)
@@ -917,11 +923,11 @@ cleanup:
 	return retval;
 }
 
-static errcode_t unixfd_open(const char *str_fd, int flags,
+/*static errcode_t unixfd_open(const char *str_fd, int flags,
 			     io_channel *channel)
 {
     abort();
-/*	int fd;
+	int fd;
 	int fd_flags;
 
 	fd = atoi(str_fd);
@@ -941,16 +947,16 @@ static errcode_t unixfd_open(const char *str_fd, int flags,
 #endif
 #endif  *//* HAVE_FCNTL *//*
 
-	return unix_open_channel(str_fd, fd, flags, channel, unixfd_io_manager);*/
-}
+	return unix_open_channel(str_fd, fd, flags, channel, unixfd_io_manager);
+}*/
 
-static errcode_t unix_open(const char *name, int flags,
+static errcode_t unix_open(jobject raio, int flags,
 			   io_channel *channel)
 {
-	int fd = -1;
+//	int fd = -1;
 	int open_flags;
 
-	if (name == 0)
+	if (raio == 0)
 		return EXT2_ET_BAD_DEVICE_NAME;
 
 	open_flags = (flags & IO_FLAG_RW) ? O_RDWR : O_RDONLY;
@@ -960,16 +966,16 @@ static errcode_t unix_open(const char *name, int flags,
 	if (flags & IO_FLAG_DIRECT_IO)
 		open_flags |= O_DIRECT;
 #endif
-	fd = ext2fs_open_file(name, open_flags, 0);
-	if (fd < 0)
-		return errno;
+//	fd = ext2fs_open_file(raio, open_flags, 0);
+//	if (fd < 0)
+//		return errno;
 #if defined(F_NOCACHE) && !defined(IO_DIRECT)
 	if (flags & IO_FLAG_DIRECT_IO) {
 		if (fcntl(fd, F_NOCACHE, 1) < 0)
 			return errno;
 	}
 #endif
-	return unix_open_channel(name, fd, flags, channel, unix_io_manager);
+	return unix_open_channel(/*name,*/ raio, flags, channel, unix_io_manager);
 }
 
 static errcode_t unix_close(io_channel channel)
@@ -1513,7 +1519,7 @@ io_manager unix_io_manager = &struct_unix_manager;
 static struct struct_io_manager struct_unixfd_manager = {
 	.magic		= EXT2_ET_MAGIC_IO_MANAGER,
 	.name		= "Unix fd I/O Manager",
-	.open		= unixfd_open,
+//	.open		= unixfd_open,
 	.close		= unix_close,
 	.set_blksize	= unix_set_blksize,
 	.read_blk	= unix_read_blk,
