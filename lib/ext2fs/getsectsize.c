@@ -34,14 +34,14 @@
 #include <linux/fd.h>
 #endif
 
-#if defined(__linux__) && defined(_IO)
+/*#if defined(__linux__) && defined(_IO)
 #if !defined(BLKSSZGET)
-#define BLKSSZGET  _IO(0x12,104)/* get block device sector size */
+#define BLKSSZGET  _IO(0x12,104)*//* get block device sector size *//*
 #endif
 #if !defined(BLKPBSZGET)
-#define BLKPBSZGET _IO(0x12,123)/* get block physical sector size */
+#define BLKPBSZGET _IO(0x12,123)*//* get block physical sector size *//*
 #endif
-#endif
+#endif*/
 
 #include "ext2_fs.h"
 #include "ext2fs.h"
@@ -84,8 +84,8 @@ errcode_t ext2fs_get_device_sectsize(const char *file, int *sectsize)
 /*
  * Return desired alignment for direct I/O
  */
-int ext2fs_get_dio_alignment(int fd)
-{
+int ext2fs_get_dio_alignment(int fd_raio)
+{ //todoe check
 	int align = 0;
 
 #ifdef BLKSSZGET

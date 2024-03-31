@@ -33,7 +33,7 @@
 #include "et/com_err.h"
 #include "ext2fs/ext2_io.h"
 #include "util/jniutil.h"
-#include "util/raio.h"
+#include "util/uraio.h"
 
 #ifdef __linux__
 
@@ -94,10 +94,10 @@ static ext2_loff_t my_llseek (int fd, ext2_loff_t offset, int origin)
 #endif /* HAVE_LLSEEK */
 #endif /* defined(HAVE_LSEEK64) && defined(HAVE_LSEEK64_PROTOTYPE) */
 
-ext2_loff_t ext2fs_llseek (jobject raio, ext2_loff_t offset, int origin)
+ext2_loff_t ext2fs_llseek (int fd_raio, ext2_loff_t offset, int origin)
 {
 #if SIZEOF_OFF_T >= SIZEOF_LONG_LONG
-    raio_seek_whence(getEnv(), raio, offset, origin);
+    return uraio_lseek(fd_raio, offset, origin);
 //	return my_llseek (fd, offset, origin);
 #else
 	ext2_loff_t result;

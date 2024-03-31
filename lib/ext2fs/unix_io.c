@@ -84,8 +84,9 @@
 #include "ext2_fs.h"
 #include "ext2fs.h"
 #include "ext2fsP.h"
-#include "util/raio.h"
+#include "util/uraio.h"
 #include "util/jniutil.h"
+#undef POSIX_FADV_WILLNEED
 
 /*
  * For checking structure magic numbers...
@@ -109,8 +110,7 @@ struct unix_cache {
 
 struct unix_private_data {
 	int	magic;
-	jobject raio;
-//	int	dev;
+	int	dev_raio;
 	int	flags;
 	int	align;
 	int	access_time;
@@ -239,14 +239,13 @@ static errcode_t raw_read_blk(io_channel channel,
 	if (data->flags & IO_FLAG_FORCE_BOUNCE)
 		goto bounce_read;
 
-    JNIEnv *env = getEnv();
 #ifdef HAVE_PREAD64
 	/* Try an aligned pread */
 	if ((channel->align == 0) ||
 	    (IS_ALIGNED(buf, channel->align) &&
 	     IS_ALIGNED(location, channel->align) &&
 	     IS_ALIGNED(size, channel->align))) {
-		actual = raio_pread_all(env, data->raio, buf, size, location);
+		actual = uraio_pread_all(data->dev_raio, buf, size, location);
 		if (actual == size)
 			return 0;
 		actual = 0;
@@ -270,11 +269,11 @@ static errcode_t raw_read_blk(io_channel channel,
 	     IS_ALIGNED(location, channel->align) &&
 	     IS_ALIGNED(size, channel->align))) {
 		mutex_lock(data, BOUNCE_MTX);
-		if (ext2fs_llseek(data->raio, location, SEEK_SET) < 0) {
+		if (ext2fs_llseek(data->dev_raio, location, SEEK_SET) < 0) {
 			retval = errno ? errno : EXT2_ET_LLSEEK_FAILED;
 			goto error_unlock;
 		}
-		actual = uraio_read(data->dev, buf, size);
+		actual = uraio_read(data->dev_raio, buf, size);
 		if (actual != size) {
 		short_read:
 			if (actual < 0) {
@@ -308,12 +307,12 @@ bounce_read:
 	offset = location % align_size;
 
 	mutex_lock(data, BOUNCE_MTX);
-	if (ext2fs_llseek(data->dev, aligned_blk * align_size, SEEK_SET) < 0) {
+	if (ext2fs_llseek(data->dev_raio, aligned_blk * align_size, SEEK_SET) < 0) {
 		retval = errno ? errno : EXT2_ET_LLSEEK_FAILED;
 		goto error_unlock;
 	}
 	while (size > 0) {
-		actual = uraio_read(data->dev, data->bounce, align_size);
+		actual = uraio_read(data->dev_raio, data->bounce, align_size);
 		if (actual != align_size) {
 			actual = really_read;
 			buf -= really_read;
@@ -385,7 +384,7 @@ static errcode_t raw_write_blk(io_channel channel,
 	    (IS_ALIGNED(buf, channel->align) &&
 	     IS_ALIGNED(location, channel->align) &&
 	     IS_ALIGNED(size, channel->align))) {
-		actual = uraio_pwrite(data->dev, buf, size, location);
+		actual = uraio_pwrite(data->dev_raio, buf, size, location);
 		if (actual == size)
 			return 0;
 	}
@@ -407,11 +406,11 @@ static errcode_t raw_write_blk(io_channel channel,
 	     IS_ALIGNED(location, channel->align) &&
 	     IS_ALIGNED(size, channel->align))) {
 		mutex_lock(data, BOUNCE_MTX);
-		if (ext2fs_llseek(data->dev, location, SEEK_SET) < 0) {
+		if (ext2fs_llseek(data->dev_raio, location, SEEK_SET) < 0) {
 			retval = errno ? errno : EXT2_ET_LLSEEK_FAILED;
 			goto error_unlock;
 		}
-		actual = uraio_write(data->dev, buf, size);
+		actual = uraio_write(data->dev_raio, buf, size);
 		mutex_unlock(data, BOUNCE_MTX);
 		if (actual < 0) {
 			retval = errno;
@@ -449,12 +448,12 @@ bounce_write:
 
 		mutex_lock(data, BOUNCE_MTX);
 		if (size < align_size || offset) {
-			if (ext2fs_llseek(data->dev, aligned_blk * align_size,
+			if (ext2fs_llseek(data->dev_raio, aligned_blk * align_size,
 					  SEEK_SET) < 0) {
 				retval = errno ? errno : EXT2_ET_LLSEEK_FAILED;
 				goto error_unlock;
 			}
-			actual = uraio_read(data->dev, data->bounce,
+			actual = uraio_read(data->dev_raio, data->bounce,
 				      align_size);
 			if (actual != align_size) {
 				if (actual < 0) {
@@ -471,11 +470,11 @@ bounce_write:
 		if (actual > size)
 			actual = size;
 		memcpy(((char *)data->bounce) + offset, buf, actual);
-		if (ext2fs_llseek(data->dev, aligned_blk * align_size, SEEK_SET) < 0) {
+		if (ext2fs_llseek(data->dev_raio, aligned_blk * align_size, SEEK_SET) < 0) {
 			retval = errno ? errno : EXT2_ET_LLSEEK_FAILED;
 			goto error_unlock;
 		}
-		actual_w = uraio_write(data->dev, data->bounce, align_size);
+		actual_w = uraio_write(data->dev_raio, data->bounce, align_size);
 		mutex_unlock(data, BOUNCE_MTX);
 		if (actual_w < 0) {
 			retval = errno;
@@ -692,21 +691,18 @@ retry:
 #endif
 #endif
 
-/*static jobject ext2fs_open_file(jobject raio, int flags, mode_t mode)
+static int ext2fs_open_file(jobject raio, int flags, mode_t mode)
 {
-	if (mode)
+    return uraio_open_by_raio(raio, getEnv());
+/*    if (mode)
 #if defined(HAVE_OPEN64) && !defined(__OSX_AVAILABLE_BUT_DEPRECATED)
 		return open64(pathname, flags, mode);
 	else
 		return open64(pathname, flags);
 #else
-        return raio;
-//		return uraio_open(pathname, flags, mode);
 	else
-        return raio;
-//		return uraio_open(pathname, flags);
-#endif
-}*/
+#endif*/
+}
 
 /*int ext2fs_stat(const char *path, ext2fs_struct_stat *buf)
 {
@@ -718,19 +714,19 @@ retry:
 #endif
 }*/
 
-static int ext2fs_fstat(int fd, ext2fs_struct_stat *buf)
+static int ext2fs_fstat(int fd_raio, ext2fs_struct_stat *buf)
 {
 #if defined(HAVE_FSTAT64) && !defined(__OSX_AVAILABLE_BUT_DEPRECATED)
 	return fstat64(fd, buf);
 #else
-	return uraio_fstat(fd, buf);
+	return uraio_fstat(fd_raio, buf);
 #endif
 }
 
 
-static errcode_t unix_open_channel(jobject raio,
-				   int flags, io_channel *channel,
-				   io_manager io_mgr)
+static errcode_t unix_open_channel(/*const char *name, */int fd_raio,
+                                   int flags, io_channel *channel,
+                                   io_manager io_mgr)
 {
 	io_channel	io = NULL;
 	struct unix_private_data *data = NULL;
@@ -748,7 +744,7 @@ static errcode_t unix_open_channel(jobject raio,
 	 * We need to make sure any previous errors in the block
 	 * device are thrown away, sigh.
 	 */
-	(void) raio_fsync(getEnv(), raio);
+	(void) uraio_fsync(fd_raio);
 #endif
 
 	retval = ext2fs_get_mem(sizeof(struct struct_io_channel), &io);
@@ -766,7 +762,6 @@ static errcode_t unix_open_channel(jobject raio,
 //		goto cleanup;
 
 //	strcpy(io->name, name);
-    io->raio = raio;
 	io->private_data = data;
 	io->block_size = 1024;
 	io->read_error = 0;
@@ -785,7 +780,7 @@ static errcode_t unix_open_channel(jobject raio,
 
 #if defined(O_DIRECT)
 	if (flags & IO_FLAG_DIRECT_IO)
-		io->align = ext2fs_get_dio_alignment(data->dev);
+		io->align = ext2fs_get_dio_alignment(data->dev_raio);
 #elif defined(F_NOCACHE)
 	if (flags & IO_FLAG_DIRECT_IO)
 		io->align = 4096;
@@ -798,7 +793,7 @@ static errcode_t unix_open_channel(jobject raio,
 	 * and if it succeed, subsequent read from sparse area returns
 	 * zero.
 	 */
-	if (ext2fs_fstat(data->dev, &st) == 0) {
+	if (ext2fs_fstat(data->dev_raio, &st) == 0) {
 		if (ext2fsP_is_disk_device(st.st_mode)) {
 #ifdef BLKDISCARDZEROES
             abort();
@@ -869,7 +864,7 @@ static errcode_t unix_open_channel(jobject raio,
 	     (ut.release[2] == '4') && (ut.release[3] == '.') &&
 	     (ut.release[4] == '1') && (ut.release[5] >= '0') &&
 	     (ut.release[5] < '8')) &&
-	    (ext2fs_fstat(data->dev, &st) == 0) &&
+	    (ext2fs_fstat(data->dev_raio, &st) == 0) &&
 	    (ext2fsP_is_disk_device(st.st_mode))) {
         abort();
 		/*struct rlimit	rlim;
@@ -909,15 +904,15 @@ static errcode_t unix_open_channel(jobject raio,
 
 cleanup:
 	if (data) {
-		if (data->dev >= 0)
-			uraio_close(data->dev);
+		if (data->dev_raio != -1)
+			uraio_close(data->dev_raio);
 		free_cache(data);
 		ext2fs_free_mem(&data);
 	}
 	if (io) {
-		if (io->name) {
+		/*if (io->name) {
 			ext2fs_free_mem(&io->name);
-		}
+		}*/
 		ext2fs_free_mem(&io);
 	}
 	return retval;
@@ -953,7 +948,7 @@ cleanup:
 static errcode_t unix_open(jobject raio, int flags,
 			   io_channel *channel)
 {
-//	int fd = -1;
+	int fd = -1;
 	int open_flags;
 
 	if (raio == 0)
@@ -966,7 +961,7 @@ static errcode_t unix_open(jobject raio, int flags,
 	if (flags & IO_FLAG_DIRECT_IO)
 		open_flags |= O_DIRECT;
 #endif
-//	fd = ext2fs_open_file(raio, open_flags, 0);
+	fd = ext2fs_open_file(raio, open_flags, 0);
 //	if (fd < 0)
 //		return errno;
 #if defined(F_NOCACHE) && !defined(IO_DIRECT)
@@ -975,7 +970,7 @@ static errcode_t unix_open(jobject raio, int flags,
 			return errno;
 	}
 #endif
-	return unix_open_channel(/*name,*/ raio, flags, channel, unix_io_manager);
+    return unix_open_channel(/*name,*/ fd, flags, channel, unix_io_manager);
 }
 
 static errcode_t unix_close(io_channel channel)
@@ -994,7 +989,7 @@ static errcode_t unix_close(io_channel channel)
 	retval = flush_cached_blocks(channel, data, 0);
 #endif
 
-	if (uraio_close(data->dev) < 0)
+	if (uraio_close(data->dev_raio) < 0)
 		retval = errno;
 	free_cache(data);
 #ifdef HAVE_PTHREAD
@@ -1006,8 +1001,8 @@ static errcode_t unix_close(io_channel channel)
 #endif
 
 	ext2fs_free_mem(&channel->private_data);
-	if (channel->name)
-		ext2fs_free_mem(&channel->name);
+	/*if (channel->name)
+		ext2fs_free_mem(&channel->name);*/
 	ext2fs_free_mem(&channel);
 	return retval;
 }
@@ -1280,10 +1275,10 @@ static errcode_t unix_write_byte(io_channel channel, unsigned long offset,
 		return retval;
 #endif
 
-	if (uraio_lseek(data->dev, offset + data->offset, SEEK_SET) < 0)
+	if (uraio_lseek(data->dev_raio, offset + data->offset, SEEK_SET) < 0)
 		return errno;
 
-	actual = uraio_write(data->dev, buf, size);
+	actual = uraio_write(data->dev_raio, buf, size);
 	if (actual < 0)
 		return errno;
 	if (actual != size)
@@ -1308,7 +1303,7 @@ static errcode_t unix_flush(io_channel channel)
 	retval = flush_cached_blocks(channel, data, 0);
 #endif
 #ifdef HAVE_FSYNC
-	if (!retval && uraio_fsync(data->dev) != 0)
+	if (!retval && uraio_fsync(data->dev_raio) != 0)
 		return errno;
 #endif
 	return retval;
@@ -1416,7 +1411,7 @@ unimplemented:
  * it always invalidates page cache, and libext2fs requires that reads after
  * ZERO_RANGE return zeroes.
  */
-static int __unix_zeroout(int fd, off_t offset, off_t len)
+static int __unix_zeroout(int fd_raio, off_t offset, off_t len)
 {
 	int ret = -1;
 
@@ -1460,7 +1455,7 @@ static errcode_t unix_zeroout(io_channel channel, unsigned long long block,
 		 * If we're trying to zero a range past the end of the file,
 		 * extend the file size, then truncate everything.
 		 */
-		ret = uraio_fstat(data->dev, &statbuf);
+		ret = uraio_fstat(data->dev_raio, &statbuf);
 		if (ret)
 			goto err;
 		if ((unsigned long long) statbuf.st_size <
@@ -1476,7 +1471,7 @@ static errcode_t unix_zeroout(io_channel channel, unsigned long long block,
 	if (channel->flags & CHANNEL_FLAGS_NOZEROOUT)
 		goto unimplemented;
 
-	ret = __unix_zeroout(data->dev,
+	ret = __unix_zeroout(data->dev_raio,
 			(off_t)(block) * channel->block_size + data->offset,
 			(off_t)(count) * channel->block_size);
 err:

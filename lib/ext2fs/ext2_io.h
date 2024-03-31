@@ -25,7 +25,7 @@ typedef long		ext2_loff_t;
 #endif
 
 /* llseek.c */
-ext2_loff_t ext2fs_llseek (jobject , ext2_loff_t, int);
+ext2_loff_t ext2fs_llseek (int, ext2_loff_t, int);
 
 typedef struct struct_io_manager *io_manager;
 typedef struct struct_io_channel *io_channel;
@@ -43,7 +43,6 @@ typedef struct struct_io_stats *io_stats;
 struct struct_io_channel {
 	errcode_t	magic;
 	io_manager	manager;
-    jobject raio;
 //	char		*name;
 	int		block_size;
 	errcode_t	(*read_error)(io_channel channel,
