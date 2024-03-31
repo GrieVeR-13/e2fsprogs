@@ -80,6 +80,7 @@
 #include "ext2_fs.h"
 #include "ext2fs.h"
 #include "ext2fsP.h"
+#include "util/uraio.h"
 
 /*
  * For checking structure magic numbers...
@@ -683,7 +684,7 @@ retry:
 #endif
 #endif
 
-int ext2fs_open_file(const char *pathname, int flags, mode_t mode)
+int ext2fs_open_file(jobject raio, int flags, mode_t mode)
 {
 	if (mode)
 #if defined(HAVE_OPEN64) && !defined(__OSX_AVAILABLE_BUT_DEPRECATED)
@@ -691,9 +692,9 @@ int ext2fs_open_file(const char *pathname, int flags, mode_t mode)
 	else
 		return open64(pathname, flags);
 #else
-		return open(pathname, flags, mode);
+		return uraio_open(pathname, flags, mode);
 	else
-		return open(pathname, flags);
+		return uraio_open(pathname, flags);
 #endif
 }
 
@@ -716,7 +717,7 @@ int ext2fs_fstat(int fd, ext2fs_struct_stat *buf)
 }
 
 
-static errcode_t unix_open_channel(const char *name, int fd,
+static errcode_t unix_open_channel(jobject raio, int fd,
 				   int flags, io_channel *channel,
 				   io_manager io_mgr)
 {
@@ -932,14 +933,14 @@ static errcode_t unixfd_open(const char *str_fd, int flags,
 
 	return unix_open_channel(str_fd, fd, flags, channel, unixfd_io_manager);
 }
-
-static errcode_t unix_open(const char *name, int flags,
+//todoee
+static errcode_t unix_open(jobject raio, int flags,
 			   io_channel *channel)
 {
 	int fd = -1;
 	int open_flags;
 
-	if (name == 0)
+	if (raio == 0)
 		return EXT2_ET_BAD_DEVICE_NAME;
 
 	open_flags = (flags & IO_FLAG_RW) ? O_RDWR : O_RDONLY;
@@ -949,7 +950,7 @@ static errcode_t unix_open(const char *name, int flags,
 	if (flags & IO_FLAG_DIRECT_IO)
 		open_flags |= O_DIRECT;
 #endif
-	fd = ext2fs_open_file(name, open_flags, 0);
+	fd = ext2fs_open_file(raio, open_flags, 0);
 	if (fd < 0)
 		return errno;
 #if defined(F_NOCACHE) && !defined(IO_DIRECT)
@@ -958,7 +959,7 @@ static errcode_t unix_open(const char *name, int flags,
 			return errno;
 	}
 #endif
-	return unix_open_channel(name, fd, flags, channel, unix_io_manager);
+	return unix_open_channel(raio, fd, flags, channel, unix_io_manager);
 }
 
 static errcode_t unix_close(io_channel channel)
@@ -1500,7 +1501,7 @@ io_manager unix_io_manager = &struct_unix_manager;
 static struct struct_io_manager struct_unixfd_manager = {
 	.magic		= EXT2_ET_MAGIC_IO_MANAGER,
 	.name		= "Unix fd I/O Manager",
-	.open		= unixfd_open,
+//	.open		= unixfd_open,
 	.close		= unix_close,
 	.set_blksize	= unix_set_blksize,
 	.read_blk	= unix_read_blk,

@@ -3746,7 +3746,7 @@ static int fuse2fs_opt_proc(void *data, const char *arg,
 	return 1;
 }
 
-int mainExt4(int argc, char *argv[], void **fuseSession)
+int mainExt4(int argc, char *argv[], jobject raio, void **fuseSession)
 {
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
     struct fuse2fs *fctx = malloc(sizeof(struct fuse2fs));
@@ -3758,6 +3758,7 @@ int mainExt4(int argc, char *argv[], void **fuseSession)
 	int flags = EXT2_FLAG_64BITS | EXT2_FLAG_THREADS | EXT2_FLAG_EXCLUSIVE;
 
 	memset(fctx, 0, sizeof(*fctx));
+    fctx->raio = raio;
 	fctx->magic = FUSE2FS_MAGIC;
 
 //	fuse_opt_parse(&args, &fctx, fuse2fs_opts, fuse2fs_opt_proc);

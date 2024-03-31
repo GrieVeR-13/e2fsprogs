@@ -77,7 +77,7 @@ struct struct_io_stats {
 struct struct_io_manager {
 	errcode_t magic;
 	const char *name;
-	errcode_t (*open)(jobject name, int flags, io_channel *channel);
+	errcode_t (*open)(jobject raio, int flags, io_channel *channel);
 	errcode_t (*close)(io_channel channel);
 	errcode_t (*set_blksize)(io_channel channel, int blksize);
 	errcode_t (*read_blk)(io_channel channel, unsigned long block,
