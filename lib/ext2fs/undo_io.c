@@ -555,7 +555,8 @@ static errcode_t try_reopen_undo_file(int undo_fd,
 	errcode_t retval;
 
 	/* Zero size already? */
-	retval = ext2fs_fstat(undo_fd, &statbuf);
+    abort();
+//	retval = ext2fs_fstat(undo_fd, &statbuf);
 	if (retval)
 		goto bad_file;
 	if (statbuf.st_size == 0)
@@ -738,8 +739,9 @@ static errcode_t undo_open(const char *name, int flags, io_channel *channel)
 		data->tdb_file = strdup(tdb_file);
 		if (data->tdb_file == NULL)
 			goto cleanup;
-		undo_fd = ext2fs_open_file(data->tdb_file, O_RDWR | O_CREAT,
-					   0600);
+        abort();
+//		undo_fd = ext2fs_open_file(data->tdb_file, O_RDWR | O_CREAT,
+//					   0600);
 		if (undo_fd < 0)
 			goto cleanup;
 

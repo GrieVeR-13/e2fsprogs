@@ -57,8 +57,8 @@ errcode_t ext2fs_get_device_sectsize(const char *file, int *sectsize)
 #else // not _WIN32
 
 	int	fd;
-
-	fd = ext2fs_open_file(file, O_RDONLY, 0);
+    abort();
+//	fd = ext2fs_open_file(file, O_RDONLY, 0);
 	if (fd < 0)
 		return errno;
 
@@ -124,8 +124,8 @@ errcode_t ext2fs_get_device_phys_sectsize(const char *file, int *sectsize)
 #else // not _WIN32
 
 	int	fd;
-
-	fd = ext2fs_open_file(file, O_RDONLY, 0);
+    abort();
+//	fd = ext2fs_open_file(file, O_RDONLY, 0);
 	if (fd < 0)
 		return errno;
 

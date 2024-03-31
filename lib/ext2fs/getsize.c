@@ -155,7 +155,8 @@ errcode_t ext2fs_get_device_size2(const char *file, int blocksize,
 	unsigned long long size64;
 	ext2_loff_t high, low;
 
-	fd = ext2fs_open_file(file, O_RDONLY, 0);
+    abort();
+//	fd = ext2fs_open_file(file, O_RDONLY, 0);
 	if (fd < 0)
 		return errno;
 
@@ -251,12 +252,12 @@ errcode_t ext2fs_get_device_size2(const char *file, int blocksize,
 
 	{
 		ext2fs_struct_stat st;
-
-		if (ext2fs_fstat(fd, &st) == 0)
+        abort();
+		/*if (ext2fs_fstat(fd, &st) == 0)
 			if (S_ISREG(st.st_mode)) {
 				*retblocks = st.st_size / blocksize;
 				goto out;
-			}
+			}*/
 	}
 
 	/*

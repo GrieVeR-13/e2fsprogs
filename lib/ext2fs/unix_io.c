@@ -34,12 +34,16 @@
 #include <stdio.h>
 #include <string.h>
 #if HAVE_UNISTD_H
-#include <unistd.h>
+//#include <unistd.h>
 #endif
 #if HAVE_ERRNO_H
 #include <errno.h>
 #endif
 #include <fcntl.h>
+//#define O_RDONLY 00000000
+//#define O_WRONLY 00000001 //todoe
+//#define O_RDWR 00000002
+//#define O_EXCL 00000200
 #include <time.h>
 #ifdef __linux__
 #include <sys/utsname.h>
@@ -48,10 +52,10 @@
 #include <sys/types.h>
 #endif
 #ifdef HAVE_SYS_IOCTL_H
-#include <sys/ioctl.h>
+//#include <sys/ioctl.h>
 #endif
 #ifdef HAVE_SYS_MOUNT_H
-#include <sys/mount.h>
+//#include <sys/mount.h>
 #endif
 #ifdef HAVE_SYS_PRCTL_H
 #include <sys/prctl.h>
@@ -59,13 +63,13 @@
 #define PR_GET_DUMPABLE 3
 #endif
 #if HAVE_SYS_STAT_H
-#include <sys/stat.h>
+//#include <sys/stat.h>
 #endif
 #if HAVE_SYS_RESOURCE_H
-#include <sys/resource.h>
+//#include <sys/resource.h>
 #endif
 #if HAVE_LINUX_FALLOC_H
-#include <linux/falloc.h>
+//#include <linux/falloc.h>
 #endif
 #ifdef HAVE_PTHREAD
 #include <pthread.h>
@@ -185,8 +189,9 @@ static errcode_t unix_get_stats(io_channel channel, io_stats *stats)
 
 static char *safe_getenv(const char *arg)
 {
-	if ((getuid() != geteuid()) || (getgid() != getegid()))
-		return NULL;
+    return NULL;
+//	if ((getuid() != geteuid()) || (getgid() != getegid()))
+//		return NULL;
 #ifdef HAVE_PRCTL
 	if (prctl(PR_GET_DUMPABLE, 0, 0, 0, 0) == 0)
 		return NULL;
@@ -238,7 +243,7 @@ static errcode_t raw_read_blk(io_channel channel,
 	    (IS_ALIGNED(buf, channel->align) &&
 	     IS_ALIGNED(location, channel->align) &&
 	     IS_ALIGNED(size, channel->align))) {
-		actual = pread64(data->dev, buf, size, location);
+		actual = uraio_pread_all(data->dev, buf, size, location);
 		if (actual == size)
 			return 0;
 		actual = 0;
@@ -266,7 +271,7 @@ static errcode_t raw_read_blk(io_channel channel,
 			retval = errno ? errno : EXT2_ET_LLSEEK_FAILED;
 			goto error_unlock;
 		}
-		actual = read(data->dev, buf, size);
+		actual = uraio_read(data->dev, buf, size);
 		if (actual != size) {
 		short_read:
 			if (actual < 0) {
@@ -305,7 +310,7 @@ bounce_read:
 		goto error_unlock;
 	}
 	while (size > 0) {
-		actual = read(data->dev, data->bounce, align_size);
+		actual = uraio_read(data->dev, data->bounce, align_size);
 		if (actual != align_size) {
 			actual = really_read;
 			buf -= really_read;
@@ -377,7 +382,7 @@ static errcode_t raw_write_blk(io_channel channel,
 	    (IS_ALIGNED(buf, channel->align) &&
 	     IS_ALIGNED(location, channel->align) &&
 	     IS_ALIGNED(size, channel->align))) {
-		actual = pwrite64(data->dev, buf, size, location);
+		actual = uraio_pwrite(data->dev, buf, size, location);
 		if (actual == size)
 			return 0;
 	}
@@ -403,7 +408,7 @@ static errcode_t raw_write_blk(io_channel channel,
 			retval = errno ? errno : EXT2_ET_LLSEEK_FAILED;
 			goto error_unlock;
 		}
-		actual = write(data->dev, buf, size);
+		actual = uraio_write(data->dev, buf, size);
 		mutex_unlock(data, BOUNCE_MTX);
 		if (actual < 0) {
 			retval = errno;
@@ -446,7 +451,7 @@ bounce_write:
 				retval = errno ? errno : EXT2_ET_LLSEEK_FAILED;
 				goto error_unlock;
 			}
-			actual = read(data->dev, data->bounce,
+			actual = uraio_read(data->dev, data->bounce,
 				      align_size);
 			if (actual != align_size) {
 				if (actual < 0) {
@@ -467,7 +472,7 @@ bounce_write:
 			retval = errno ? errno : EXT2_ET_LLSEEK_FAILED;
 			goto error_unlock;
 		}
-		actual_w = write(data->dev, data->bounce, align_size);
+		actual_w = uraio_write(data->dev, data->bounce, align_size);
 		mutex_unlock(data, BOUNCE_MTX);
 		if (actual_w < 0) {
 			retval = errno;
@@ -684,7 +689,7 @@ retry:
 #endif
 #endif
 
-int ext2fs_open_file(const char *pathname, int flags, mode_t mode)
+static int ext2fs_open_file(const char *pathname, int flags, mode_t mode)
 {
 	if (mode)
 #if defined(HAVE_OPEN64) && !defined(__OSX_AVAILABLE_BUT_DEPRECATED)
@@ -698,21 +703,22 @@ int ext2fs_open_file(const char *pathname, int flags, mode_t mode)
 #endif
 }
 
-int ext2fs_stat(const char *path, ext2fs_struct_stat *buf)
+/*int ext2fs_stat(const char *path, ext2fs_struct_stat *buf)
 {
+    abort();
 #if defined(HAVE_FSTAT64) && !defined(__OSX_AVAILABLE_BUT_DEPRECATED)
 	return stat64(path, buf);
 #else
-	return stat(path, buf);
+    return uraio_stat(path, buf);
 #endif
-}
+}*/
 
-int ext2fs_fstat(int fd, ext2fs_struct_stat *buf)
+static int ext2fs_fstat(int fd, ext2fs_struct_stat *buf)
 {
 #if defined(HAVE_FSTAT64) && !defined(__OSX_AVAILABLE_BUT_DEPRECATED)
 	return fstat64(fd, buf);
 #else
-	return fstat(fd, buf);
+	return uraio_fstat(fd, buf);
 #endif
 }
 
@@ -737,7 +743,7 @@ static errcode_t unix_open_channel(const char *name, int fd,
 	 * We need to make sure any previous errors in the block
 	 * device are thrown away, sigh.
 	 */
-	(void) fsync(fd);
+	(void) uraio_fsync(fd);
 #endif
 
 	retval = ext2fs_get_mem(sizeof(struct struct_io_channel), &io);
@@ -789,11 +795,12 @@ static errcode_t unix_open_channel(const char *name, int fd,
 	if (ext2fs_fstat(data->dev, &st) == 0) {
 		if (ext2fsP_is_disk_device(st.st_mode)) {
 #ifdef BLKDISCARDZEROES
+            abort();
 			int zeroes = 0;
 
-			if (ioctl(data->dev, BLKDISCARDZEROES, &zeroes) == 0 &&
+/*			if (ioctl(data->dev, BLKDISCARDZEROES, &zeroes) == 0 &&
 			    zeroes)
-				io->flags |= CHANNEL_FLAGS_DISCARD_ZEROES;
+				io->flags |= CHANNEL_FLAGS_DISCARD_ZEROES;*/
 #endif
 			io->flags |= CHANNEL_FLAGS_BLOCK_DEVICE;
 		} else {
@@ -858,7 +865,8 @@ static errcode_t unix_open_channel(const char *name, int fd,
 	     (ut.release[5] < '8')) &&
 	    (ext2fs_fstat(data->dev, &st) == 0) &&
 	    (ext2fsP_is_disk_device(st.st_mode))) {
-		struct rlimit	rlim;
+        abort();
+		/*struct rlimit	rlim;
 
 		rlim.rlim_cur = rlim.rlim_max = (unsigned long) RLIM_INFINITY;
 		setrlimit(RLIMIT_FSIZE, &rlim);
@@ -867,9 +875,10 @@ static errcode_t unix_open_channel(const char *name, int fd,
 		    ((unsigned long) rlim.rlim_max)) {
 			rlim.rlim_cur = rlim.rlim_max;
 			setrlimit(RLIMIT_FSIZE, &rlim);
-		}
+		}*/
 	}
 #endif
+    //todoe git config add
 #ifdef HAVE_PTHREAD
 	if (flags & IO_FLAG_THREADS) {
 		io->flags |= CHANNEL_FLAGS_THREADS;
@@ -895,7 +904,7 @@ static errcode_t unix_open_channel(const char *name, int fd,
 cleanup:
 	if (data) {
 		if (data->dev >= 0)
-			close(data->dev);
+			uraio_close(data->dev);
 		free_cache(data);
 		ext2fs_free_mem(&data);
 	}
@@ -911,7 +920,8 @@ cleanup:
 static errcode_t unixfd_open(const char *str_fd, int flags,
 			     io_channel *channel)
 {
-	int fd;
+    abort();
+/*	int fd;
 	int fd_flags;
 
 	fd = atoi(str_fd);
@@ -929,9 +939,9 @@ static errcode_t unixfd_open(const char *str_fd, int flags,
 	if (fd_flags & O_DIRECT)
 		flags |= IO_FLAG_DIRECT_IO;
 #endif
-#endif  /* HAVE_FCNTL */
+#endif  *//* HAVE_FCNTL *//*
 
-	return unix_open_channel(str_fd, fd, flags, channel, unixfd_io_manager);
+	return unix_open_channel(str_fd, fd, flags, channel, unixfd_io_manager);*/
 }
 
 static errcode_t unix_open(const char *name, int flags,
@@ -978,7 +988,7 @@ static errcode_t unix_close(io_channel channel)
 	retval = flush_cached_blocks(channel, data, 0);
 #endif
 
-	if (close(data->dev) < 0)
+	if (uraio_close(data->dev) < 0)
 		retval = errno;
 	free_cache(data);
 #ifdef HAVE_PTHREAD
@@ -1264,10 +1274,10 @@ static errcode_t unix_write_byte(io_channel channel, unsigned long offset,
 		return retval;
 #endif
 
-	if (lseek(data->dev, offset + data->offset, SEEK_SET) < 0)
+	if (uraio_lseek(data->dev, offset + data->offset, SEEK_SET) < 0)
 		return errno;
 
-	actual = write(data->dev, buf, size);
+	actual = uraio_write(data->dev, buf, size);
 	if (actual < 0)
 		return errno;
 	if (actual != size)
@@ -1292,7 +1302,7 @@ static errcode_t unix_flush(io_channel channel)
 	retval = flush_cached_blocks(channel, data, 0);
 #endif
 #ifdef HAVE_FSYNC
-	if (!retval && fsync(data->dev) != 0)
+	if (!retval && uraio_fsync(data->dev) != 0)
 		return errno;
 #endif
 	return retval;
@@ -1346,7 +1356,8 @@ static errcode_t unix_set_option(io_channel channel, const char *option,
 static errcode_t unix_discard(io_channel channel, unsigned long long block,
 			      unsigned long long count)
 {
-	struct unix_private_data *data;
+    abort();
+	/*struct unix_private_data *data;
 	int		ret = EOPNOTSUPP;
 
 	EXT2_CHECK_MAGIC(channel, EXT2_ET_MAGIC_IO_CHANNEL);
@@ -1369,10 +1380,10 @@ static errcode_t unix_discard(io_channel channel, unsigned long long block,
 #endif
 	} else {
 #if defined(HAVE_FALLOCATE) && defined(FALLOC_FL_PUNCH_HOLE)
-		/*
+		*//*
 		 * If we are not on block device, try to use punch hole
 		 * to reclaim free space.
-		 */
+		 *//*
 		ret = fallocate(data->dev,
 				FALLOC_FL_PUNCH_HOLE | FALLOC_FL_KEEP_SIZE,
 				(off_t)(block) * channel->block_size + data->offset,
@@ -1390,7 +1401,7 @@ static errcode_t unix_discard(io_channel channel, unsigned long long block,
 	}
 	return 0;
 unimplemented:
-	return EXT2_ET_UNIMPLEMENTED;
+	return EXT2_ET_UNIMPLEMENTED;*/
 }
 
 /*
@@ -1443,13 +1454,14 @@ static errcode_t unix_zeroout(io_channel channel, unsigned long long block,
 		 * If we're trying to zero a range past the end of the file,
 		 * extend the file size, then truncate everything.
 		 */
-		ret = fstat(data->dev, &statbuf);
+		ret = uraio_fstat(data->dev, &statbuf);
 		if (ret)
 			goto err;
 		if ((unsigned long long) statbuf.st_size <
 			(block + count) * channel->block_size + data->offset) {
-			ret = ftruncate(data->dev,
-					(block + count) * channel->block_size + data->offset);
+            abort();
+//			ret = raio_ftruncate(data->dev,
+//					(block + count) * channel->block_size + data->offset);
 			if (ret)
 				goto err;
 		}

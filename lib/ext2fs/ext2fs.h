@@ -107,7 +107,6 @@ typedef __u32 __bitwise		ext2_dirhash_t;
 #endif
 
 #include "hashmap.h"
-#include <jni.h>
 
 /*
  * Portability help for Microsoft Visual C++
@@ -1820,9 +1819,9 @@ extern void ext2fs_swap_inode(ext2_filsys fs,struct ext2_inode *t,
 extern void ext2fs_swap_mmp(struct mmp_struct *mmp);
 
 /* unix_io.c */
-extern int ext2fs_open_file(const char *pathname, int flags, mode_t mode);
+/*extern int ext2fs_open_file(const char *pathname, int flags, mode_t mode);
 extern int ext2fs_stat(const char *path, ext2fs_struct_stat *buf);
-extern int ext2fs_fstat(int fd, ext2fs_struct_stat *buf);
+extern int ext2fs_fstat(int fd, ext2fs_struct_stat *buf);*/
 
 /* valid_blk.c */
 extern int ext2fs_inode_has_valid_blocks(struct ext2_inode *inode);

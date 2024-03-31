@@ -203,9 +203,10 @@ oops:
  */
 static char *safe_getenv(const char *arg)
 {
+    return NULL;
 #if !defined(_WIN32)
-	if ((getuid() != geteuid()) || (getgid() != getegid()))
-		return NULL;
+//	if ((getuid() != geteuid()) || (getgid() != getegid()))
+//		return NULL;
 #endif
 #if HAVE_PRCTL
 	if (prctl(PR_GET_DUMPABLE, 0, 0, 0, 0) == 0)
