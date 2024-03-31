@@ -248,8 +248,7 @@ struct struct_ext2_filsys {
 	errcode_t			magic;
 	io_channel			io;
 	int				flags;
-//    char *				device_name;
-	jobject 				raio;
+	char *				device_name;
 	struct ext2_super_block	* 	super;
 	unsigned int			blocksize;
 	int				fragsize;
@@ -1696,7 +1695,7 @@ extern int ext2fs_journal_sb_start(int blocksize);
 extern errcode_t ext2fs_open(const char *name, int flags, int superblock,
 			     unsigned int block_size, io_manager manager,
 			     ext2_filsys *ret_fs);
-extern errcode_t ext2fs_open2(jobject name, const char *io_options,
+extern errcode_t ext2fs_open2(const char *name, const char *io_options,
 			      int flags, int superblock,
 			      unsigned int block_size, io_manager manager,
 			      ext2_filsys *ret_fs);
@@ -1821,7 +1820,7 @@ extern void ext2fs_swap_inode(ext2_filsys fs,struct ext2_inode *t,
 extern void ext2fs_swap_mmp(struct mmp_struct *mmp);
 
 /* unix_io.c */
-extern int ext2fs_open_file(jobject raio, int flags, mode_t mode);
+extern int ext2fs_open_file(const char *pathname, int flags, mode_t mode);
 extern int ext2fs_stat(const char *path, ext2fs_struct_stat *buf);
 extern int ext2fs_fstat(int fd, ext2fs_struct_stat *buf);
 

@@ -30,9 +30,8 @@ void ext2fs_free(ext2_filsys fs)
 	if (fs->io) {
 		io_channel_close(fs->io);
 	}
-    abort();
-//	if (fs->device_name)
-//		ext2fs_free_mem(&fs->device_name);
+	if (fs->device_name)
+		ext2fs_free_mem(&fs->device_name);
 	if (fs->super)
 		ext2fs_free_mem(&fs->super);
 	if (fs->orig_super)

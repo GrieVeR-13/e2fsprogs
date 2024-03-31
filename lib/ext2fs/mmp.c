@@ -67,11 +67,11 @@ errcode_t ext2fs_mmp_read(ext2_filsys fs, blk64_t mmp_blk, void *buf)
 		 * size larger than blocksize of the fs we're working with.
 		 */
         abort();
-		/*if (stat(fs->device_name, &st) == 0 &&
+		if (stat(fs->device_name, &st) == 0 &&
 		    S_ISREG(st.st_mode))
 			flags &= ~O_DIRECT;
 
-		fs->mmp_fd = open(fs->device_name, flags);*/
+		fs->mmp_fd = open(fs->device_name, flags);
 		if (fs->mmp_fd < 0) {
 			retval = EXT2_ET_MMP_OPEN_DIRECT;
 			goto out;
@@ -217,9 +217,8 @@ static errcode_t ext2fs_mmp_reset(ext2_filsys fs)
 #else
 	mmp_s->mmp_nodename[0] = '\0';
 #endif
-    abort();
-//	strncpy((char *) mmp_s->mmp_bdevname, fs->device_name,
-//		sizeof(mmp_s->mmp_bdevname));
+	strncpy((char *) mmp_s->mmp_bdevname, fs->device_name,
+		sizeof(mmp_s->mmp_bdevname));
 
 	mmp_s->mmp_check_interval = fs->super->s_mmp_update_interval;
 	if (mmp_s->mmp_check_interval < EXT4_MMP_MIN_CHECK_INTERVAL)
@@ -360,9 +359,8 @@ clean_seq:
 #else
 	strcpy((char *) mmp_s->mmp_nodename, "unknown host");
 #endif
-    abort();
-//	strncpy((char *) mmp_s->mmp_bdevname, fs->device_name,
-//		sizeof(mmp_s->mmp_bdevname));
+	strncpy((char *) mmp_s->mmp_bdevname, fs->device_name,
+		sizeof(mmp_s->mmp_bdevname));
 
 	retval = ext2fs_mmp_write(fs, fs->super->s_mmp_block, fs->mmp_buf);
 	if (retval)

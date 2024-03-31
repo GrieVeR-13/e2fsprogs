@@ -32,8 +32,7 @@ errcode_t ext2fs_dup_handle(ext2_filsys src, ext2_filsys *dest)
 		return retval;
 
 	*fs = *src;
-//	fs->device_name = 0;
-	fs->raio = 0;
+	fs->device_name = 0;
 	fs->super = 0;
 	fs->orig_super = 0;
 	fs->group_desc = 0;
