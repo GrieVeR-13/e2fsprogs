@@ -43,7 +43,7 @@ typedef struct struct_io_stats *io_stats;
 struct struct_io_channel {
 	errcode_t	magic;
 	io_manager	manager;
-//	char		*name;
+	char		*device_name_descr;
 	int		block_size;
 	errcode_t	(*read_error)(io_channel channel,
 				      unsigned long block,
@@ -77,7 +77,7 @@ struct struct_io_stats {
 struct struct_io_manager {
 	errcode_t magic;
 	const char *name;
-	errcode_t (*open)(jobject raio, int flags, io_channel *channel);
+	errcode_t (*open)(jobject raio, const char *device_name_descr, int flags, io_channel *channel);
 	errcode_t (*close)(io_channel channel);
 	errcode_t (*set_blksize)(io_channel channel, int blksize);
 	errcode_t (*read_blk)(io_channel channel, unsigned long block,

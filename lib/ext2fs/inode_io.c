@@ -47,7 +47,7 @@ struct inode_private_data {
 static struct inode_private_data *top_intern;
 static int ino_unique = 0;
 
-static errcode_t inode_open(jobject raio, int flags, io_channel *channel);
+static errcode_t inode_open(jobject raio, const char *device_name_descr, int flags, io_channel *channel);
 static errcode_t inode_close(io_channel channel);
 static errcode_t inode_set_blksize(io_channel channel, int blksize);
 static errcode_t inode_read_blk(io_channel channel, unsigned long block,
@@ -89,6 +89,7 @@ errcode_t ext2fs_inode_io_intern2(ext2_filsys fs, ext2_ino_t ino,
 				     &data)))
 		return retval;
 	data->magic = EXT2_ET_MAGIC_INODE_IO_CHANNEL;
+    abort();
 	sprintf(data->name, "%u:%d", ino, ino_unique++);
 	data->file = 0;
 	data->fs = fs;
@@ -111,10 +112,10 @@ errcode_t ext2fs_inode_io_intern(ext2_filsys fs, ext2_ino_t ino,
 }
 
 
-static errcode_t inode_open(jobject raio, int flags, io_channel *channel)
+static errcode_t inode_open(jobject raio, const char *device_name_descr, int flags, io_channel *channel)
 {
     abort();
-	/*io_channel	io = NULL;
+	io_channel	io = NULL;
 	struct inode_private_data *prev, *data = NULL;
 	errcode_t	retval;
 	int		open_flags;
@@ -124,7 +125,7 @@ static errcode_t inode_open(jobject raio, int flags, io_channel *channel)
 
 	for (data = top_intern, prev = NULL; data;
 	     prev = data, data = data->next)
-		if (strcmp(name, data->name) == 0)
+		if (strcmp(device_name_descr, data->name) == 0) //todoe not device_name_descr
 			break;
 	if (!data)
 		return ENOENT;
@@ -140,11 +141,11 @@ static errcode_t inode_open(jobject raio, int flags, io_channel *channel)
 
 	io->magic = EXT2_ET_MAGIC_IO_CHANNEL;
 	io->manager = inode_io_manager;
-	retval = ext2fs_get_mem(strlen(name)+1, &io->name);
+	retval = ext2fs_get_mem(strlen(device_name_descr)+1, &io->device_name_descr); //todoe
 	if (retval)
 		goto cleanup;
 
-	strcpy(io->name, name);
+	strcpy(io->device_name_descr, device_name_descr); //todoe
 	io->private_data = data;
 	io->block_size = 1024;
 	io->read_error = 0;
@@ -163,13 +164,13 @@ static errcode_t inode_open(jobject raio, int flags, io_channel *channel)
 	return 0;
 
 cleanup:
-	if (io && io->name)
-		ext2fs_free_mem(&io->name);
+	if (io && io->device_name_descr)
+		ext2fs_free_mem(&io->device_name_descr);
 	if (data)
 		ext2fs_free_mem(&data);
 	if (io)
 		ext2fs_free_mem(&io);
-	return retval;*/
+	return retval;
 }
 
 static errcode_t inode_close(io_channel channel)
@@ -187,9 +188,8 @@ static errcode_t inode_close(io_channel channel)
 	retval = ext2fs_file_close(data->file);
 
 	ext2fs_free_mem(&channel->private_data);
-    abort();
-//	if (channel->name)
-//		ext2fs_free_mem(&channel->name);
+	if (channel->device_name_descr)
+		ext2fs_free_mem(&channel->device_name_descr);
 	ext2fs_free_mem(&channel);
 	return retval;
 }

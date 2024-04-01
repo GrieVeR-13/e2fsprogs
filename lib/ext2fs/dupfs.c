@@ -49,11 +49,10 @@ errcode_t ext2fs_dup_handle(ext2_filsys src, ext2_filsys *dest)
 	if (fs->icache)
 		fs->icache->refcount++;
 
-    abort();
-//	retval = ext2fs_get_mem(strlen(src->device_name)+1, &fs->device_name);
-//	if (retval)
-//		goto errout;
-//	strcpy(fs->device_name, src->device_name);
+	retval = ext2fs_get_mem(strlen(src->device_name_descr)+1, &fs->device_name_descr);
+	if (retval)
+		goto errout;
+	strcpy(fs->device_name_descr, src->device_name_descr);
 
 	retval = ext2fs_get_mem(SUPERBLOCK_SIZE, &fs->super);
 	if (retval)

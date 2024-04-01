@@ -174,7 +174,7 @@ errcode_t ext2fs_open2(jobject raio, const char *device_name_descr, const char *
 		io_flags |= IO_FLAG_DIRECT_IO;
 	if (flags & EXT2_FLAG_THREADS)
 		io_flags |= IO_FLAG_THREADS;
-	retval = manager->open(fs->raio, io_flags, &fs->io);
+	retval = manager->open(fs->raio, fs->device_name_descr, io_flags, &fs->io);
 	if (retval)
 		goto cleanup;
 	if (io_options &&

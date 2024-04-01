@@ -40,10 +40,6 @@
 #include <errno.h>
 #endif
 #include <fcntl.h>
-//#define O_RDONLY 00000000
-//#define O_WRONLY 00000001 //todoe
-//#define O_RDWR 00000002
-//#define O_EXCL 00000200
 #include <time.h>
 #ifdef __linux__
 #include <sys/utsname.h>
@@ -706,7 +702,6 @@ static int ext2fs_open_file(jobject raio, int flags, mode_t mode)
 
 /*int ext2fs_stat(const char *path, ext2fs_struct_stat *buf)
 {
-    abort();
 #if defined(HAVE_FSTAT64) && !defined(__OSX_AVAILABLE_BUT_DEPRECATED)
 	return stat64(path, buf);
 #else
@@ -724,7 +719,7 @@ static int ext2fs_fstat(int fd_raio, ext2fs_struct_stat *buf)
 }
 
 
-static errcode_t unix_open_channel(/*const char *name, */int fd_raio,
+static errcode_t unix_open_channel(const char *device_name_descr, int fd_raio,
                                    int flags, io_channel *channel,
                                    io_manager io_mgr)
 {
@@ -757,11 +752,11 @@ static errcode_t unix_open_channel(/*const char *name, */int fd_raio,
 		goto cleanup;
 
 	io->manager = io_mgr;
-//	retval = ext2fs_get_mem(strlen(name)+1, &io->name);
-//	if (retval)
-//		goto cleanup;
+	retval = ext2fs_get_mem(strlen(device_name_descr)+1, &io->device_name_descr);
+	if (retval)
+		goto cleanup;
 
-//	strcpy(io->name, name);
+	strcpy(io->device_name_descr, device_name_descr);
 	io->private_data = data;
 	io->block_size = 1024;
 	io->read_error = 0;
@@ -910,9 +905,9 @@ cleanup:
 		ext2fs_free_mem(&data);
 	}
 	if (io) {
-		/*if (io->name) {
-			ext2fs_free_mem(&io->name);
-		}*/
+		if (io->device_name_descr) {
+			ext2fs_free_mem(&io->device_name_descr);
+		}
 		ext2fs_free_mem(&io);
 	}
 	return retval;
@@ -921,7 +916,6 @@ cleanup:
 /*static errcode_t unixfd_open(const char *str_fd, int flags,
 			     io_channel *channel)
 {
-    abort();
 	int fd;
 	int fd_flags;
 
@@ -945,7 +939,7 @@ cleanup:
 	return unix_open_channel(str_fd, fd, flags, channel, unixfd_io_manager);
 }*/
 
-static errcode_t unix_open(jobject raio, int flags,
+static errcode_t unix_open(jobject raio,  const char *device_name_descr, int flags,
 			   io_channel *channel)
 {
 	int fd = -1;
@@ -962,15 +956,15 @@ static errcode_t unix_open(jobject raio, int flags,
 		open_flags |= O_DIRECT;
 #endif
 	fd = ext2fs_open_file(raio, open_flags, 0);
-//	if (fd < 0)
-//		return errno;
+	if (fd == -1)
+		return errno;
 #if defined(F_NOCACHE) && !defined(IO_DIRECT)
 	if (flags & IO_FLAG_DIRECT_IO) {
 		if (fcntl(fd, F_NOCACHE, 1) < 0)
 			return errno;
 	}
 #endif
-    return unix_open_channel(/*name,*/ fd, flags, channel, unix_io_manager);
+    return unix_open_channel(device_name_descr, fd, flags, channel, unix_io_manager);
 }
 
 static errcode_t unix_close(io_channel channel)
@@ -1001,8 +995,8 @@ static errcode_t unix_close(io_channel channel)
 #endif
 
 	ext2fs_free_mem(&channel->private_data);
-	/*if (channel->name)
-		ext2fs_free_mem(&channel->name);*/
+	if (channel->device_name_descr)
+		ext2fs_free_mem(&channel->device_name_descr);
 	ext2fs_free_mem(&channel);
 	return retval;
 }
@@ -1503,7 +1497,7 @@ static struct struct_io_manager struct_unix_manager = {
 	.set_option	= unix_set_option,
 	.get_stats	= unix_get_stats,
 	.read_blk64	= unix_read_blk64,
-	.write_blk64	= unix_write_blk64, //todoe
+	.write_blk64	= unix_write_blk64,
 	.discard	= unix_discard,
 	.cache_readahead	= unix_cache_readahead,
 	.zeroout	= unix_zeroout,

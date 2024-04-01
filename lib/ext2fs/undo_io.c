@@ -714,11 +714,11 @@ static errcode_t undo_open(const char *name, int flags, io_channel *channel)
 		goto cleanup;
 
 	io->manager = undo_io_manager;
-//	retval = ext2fs_get_mem(strlen(name)+1, &io->name);
-//	if (retval)
-//		goto cleanup;
+	retval = ext2fs_get_mem(strlen(name)+1, &io->device_name_descr);
+	if (retval)
+		goto cleanup;
 
-//	strcpy(io->name, name);
+	strcpy(io->device_name_descr, name);
 	io->private_data = data;
 	io->block_size = 1024;
 	io->read_error = 0;
@@ -793,8 +793,8 @@ cleanup:
 		io_channel_close(data->real);
 	if (data)
 		ext2fs_free_mem(&data);
-//	if (io && io->name)
-//		ext2fs_free_mem(&io->name);
+	if (io && io->device_name_descr)
+		ext2fs_free_mem(&io->device_name_descr);
 	if (io)
 		ext2fs_free_mem(&io);
 	return retval;
@@ -827,8 +827,8 @@ static errcode_t undo_close(io_channel channel)
 	if (data->written_block_map)
 		ext2fs_free_generic_bitmap(data->written_block_map);
 	ext2fs_free_mem(&channel->private_data);
-//	if (channel->name)
-//		ext2fs_free_mem(&channel->name);
+	if (channel->device_name_descr)
+		ext2fs_free_mem(&channel->device_name_descr);
 	ext2fs_free_mem(&channel);
 
 	if (err)
