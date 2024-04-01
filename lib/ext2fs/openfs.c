@@ -114,7 +114,7 @@ static void block_sha_map_free_entry(void *data)
  *	EXT2_FLAG_64BITS - Allow 64-bit bitfields (needed for large
  *				filesystems)
  */
-errcode_t ext2fs_open2(jobject raio, const char *io_options,
+errcode_t ext2fs_open2(jobject raio, const char *device_name_descr, const char *io_options,
 		       int flags, int superblock,
 		       unsigned int block_size, io_manager manager,
 		       ext2_filsys *ret_fs)
@@ -154,16 +154,16 @@ errcode_t ext2fs_open2(jobject raio, const char *io_options,
 	if (time_env)
 		fs->now = strtoul(time_env, NULL, 0);
 
-	/*retval = ext2fs_get_mem(strlen(device_name)+1, &fs->fs_device_name);
+	retval = ext2fs_get_mem(strlen(device_name_descr)+1, &fs->device_name_descr);
 	if (retval)
-		goto cleanup;*/
+		goto cleanup;
     fs->raio = raio;
-/*	strcpy(fs->fs_device_name, device_name);
-    cp = strchr(fs->fs_device_name, '?');
+	strcpy(fs->device_name_descr, device_name_descr);
+    cp = strchr(fs->device_name_descr, '?');
 	if (!io_options && cp) {
 		*cp++ = 0;
 		io_options = cp;
-	}*/
+	}
 
 	io_flags = 0;
 	if (flags & EXT2_FLAG_RW)

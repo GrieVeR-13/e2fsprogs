@@ -249,7 +249,7 @@ struct struct_ext2_filsys {
 	io_channel			io;
 	int				flags;
 	jobject 				raio;
-//	char *				device_name;
+	char *				device_name_descr;
 	struct ext2_super_block	* 	super;
 	unsigned int			blocksize;
 	int				fragsize;
@@ -1696,7 +1696,7 @@ extern int ext2fs_journal_sb_start(int blocksize);
 extern errcode_t ext2fs_open(const char *name, int flags, int superblock,
 			     unsigned int block_size, io_manager manager,
 			     ext2_filsys *ret_fs);
-extern errcode_t ext2fs_open2(jobject raio, const char *io_options,
+extern errcode_t ext2fs_open2(jobject raio, const char *device_name_descr, const char *io_options,
 			      int flags, int superblock,
 			      unsigned int block_size, io_manager manager,
 			      ext2_filsys *ret_fs);

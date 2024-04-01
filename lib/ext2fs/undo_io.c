@@ -694,6 +694,7 @@ static void undo_atexit(void *p)
 
 static errcode_t undo_open(const char *name, int flags, io_channel *channel)
 {
+    abort();
 	io_channel	io = NULL;
 	struct undo_private_data *data = NULL;
 	int		undo_fd = -1;
@@ -713,11 +714,11 @@ static errcode_t undo_open(const char *name, int flags, io_channel *channel)
 		goto cleanup;
 
 	io->manager = undo_io_manager;
-	retval = ext2fs_get_mem(strlen(name)+1, &io->name);
-	if (retval)
-		goto cleanup;
+//	retval = ext2fs_get_mem(strlen(name)+1, &io->name);
+//	if (retval)
+//		goto cleanup;
 
-	strcpy(io->name, name);
+//	strcpy(io->name, name);
 	io->private_data = data;
 	io->block_size = 1024;
 	io->read_error = 0;
@@ -792,8 +793,8 @@ cleanup:
 		io_channel_close(data->real);
 	if (data)
 		ext2fs_free_mem(&data);
-	if (io && io->name)
-		ext2fs_free_mem(&io->name);
+//	if (io && io->name)
+//		ext2fs_free_mem(&io->name);
 	if (io)
 		ext2fs_free_mem(&io);
 	return retval;
@@ -801,6 +802,7 @@ cleanup:
 
 static errcode_t undo_close(io_channel channel)
 {
+    abort();
 	struct undo_private_data *data;
 	errcode_t	err, retval = 0;
 
@@ -825,8 +827,8 @@ static errcode_t undo_close(io_channel channel)
 	if (data->written_block_map)
 		ext2fs_free_generic_bitmap(data->written_block_map);
 	ext2fs_free_mem(&channel->private_data);
-	if (channel->name)
-		ext2fs_free_mem(&channel->name);
+//	if (channel->name)
+//		ext2fs_free_mem(&channel->name);
 	ext2fs_free_mem(&channel);
 
 	if (err)
@@ -1091,7 +1093,7 @@ static errcode_t undo_get_stats(io_channel channel, io_stats *stats)
 static struct struct_io_manager struct_undo_manager = {
 	.magic		= EXT2_ET_MAGIC_IO_MANAGER,
 	.name		= "Undo I/O Manager",
-	.open		= undo_open,
+//	.open		= undo_open,//todoe
 	.close		= undo_close,
 	.set_blksize	= undo_set_blksize,
 	.read_blk	= undo_read_blk,

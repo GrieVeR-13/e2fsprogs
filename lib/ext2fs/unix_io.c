@@ -776,7 +776,7 @@ static errcode_t unix_open_channel(/*const char *name, */int fd_raio,
 	data->magic = EXT2_ET_MAGIC_UNIX_IO_CHANNEL;
 	data->io_stats.num_fields = 2;
 	data->flags = flags;
-//	data->dev = fd;
+	data->dev_raio = fd_raio;
 
 #if defined(O_DIRECT)
 	if (flags & IO_FLAG_DIRECT_IO)

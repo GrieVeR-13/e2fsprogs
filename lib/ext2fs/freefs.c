@@ -19,6 +19,8 @@
 #include "ext2fsP.h"
 #include "hashmap.h"
 
+#include "util/jniutil.h"
+
 void ext2fs_free(ext2_filsys fs)
 {
 	if (!fs || (fs->magic != EXT2_ET_MAGIC_EXT2FS_FILSYS))
@@ -30,8 +32,12 @@ void ext2fs_free(ext2_filsys fs)
 	if (fs->io) {
 		io_channel_close(fs->io);
 	}
-	if (fs->device_name)
-		ext2fs_free_mem(&fs->device_name);
+    if (fs->raio) {
+        JNIEnv *env = getEnv(); //todoe global
+        (*env)->DeleteGlobalRef(env, fs->raio);
+    }
+	if (fs->device_name_descr)
+		ext2fs_free_mem(&fs->device_name_descr);
 	if (fs->super)
 		ext2fs_free_mem(&fs->super);
 	if (fs->orig_super)

@@ -89,6 +89,7 @@ errcode_t ext2fs_initialize(const char *name, int flags,
 			    struct ext2_super_block *param,
 			    io_manager manager, ext2_filsys *ret_fs)
 {
+    abort();
 	ext2_filsys	fs;
 	errcode_t	retval;
 	struct ext2_super_block *super;
@@ -140,11 +141,11 @@ errcode_t ext2fs_initialize(const char *name, int flags,
 		goto cleanup;
 	fs->image_io = fs->io;
 	fs->io->app_data = fs;
-	retval = ext2fs_get_mem(strlen(name)+1, &fs->device_name);
-	if (retval)
-		goto cleanup;
+//	retval = ext2fs_get_mem(strlen(name)+1, &fs->device_name);
+//	if (retval)
+//		goto cleanup;
 
-	strcpy(fs->device_name, name);
+//	strcpy(fs->device_name, name);
 	retval = ext2fs_get_mem(SUPERBLOCK_SIZE, &super);
 	if (retval)
 		goto cleanup;
@@ -481,18 +482,18 @@ ipg_retry:
 		}
 	}
 
-	retval = ext2fs_get_mem(strlen(fs->device_name) + 80, &buf);
-	if (retval)
-		goto cleanup;
+//	retval = ext2fs_get_mem(strlen(fs->device_name) + 80, &buf);
+//	if (retval)
+//		goto cleanup;
 
 	strcpy(buf, "block bitmap for ");
-	strcat(buf, fs->device_name);
+//	strcat(buf, fs->device_name);
 	retval = ext2fs_allocate_subcluster_bitmap(fs, buf, &fs->block_map);
 	if (retval)
 		goto cleanup;
 
 	strcpy(buf, "inode bitmap for ");
-	strcat(buf, fs->device_name);
+//	strcat(buf, fs->device_name);
 	retval = ext2fs_allocate_inode_bitmap(fs, buf, &fs->inode_map);
 	if (retval)
 		goto cleanup;

@@ -323,7 +323,7 @@ struct fuse2fs {
 	ext2_filsys fs;
 	pthread_mutex_t bfl;
 	jobject raio;
-//	char *device;
+	char *device_name_descr;
 	int ro;
 	int debug;
 	int no_default_opts;
@@ -732,7 +732,7 @@ static int op_destroy(void *p EXT2FS_ATTR((unused)), int isForce)
 		return 0;
 	}
 	fs = ff->fs;
-	dbg_printf("%s: dev=%s\n", __func__, fs->device_name);
+	dbg_printf("%s: dev=%s\n", __func__, "fs->device_name");
 	if (fs->flags & EXT2_FLAG_RW) {
 		fs->super->s_state |= EXT2_VALID_FS;
 		if (fs->super->s_error_count)
@@ -761,7 +761,7 @@ static void *op_init(struct fuse_conn_info *conn)
 		return NULL;
 	}
 	fs = ff->fs;
-	dbg_printf("%s: dev=%s\n", __func__, fs->device_name);
+	dbg_printf("%s: dev=%s\n", __func__, "fs->device_name");
 #ifdef FUSE_CAP_IOCTL_DIR
 	conn->want |= FUSE_CAP_IOCTL_DIR;
 #endif
@@ -3746,7 +3746,7 @@ static int fuse2fs_opt_proc(void *data, const char *arg,
 	return 1;
 }
 
-int mainExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
+int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 {
 	struct fuse_args args = FUSE_ARGS_INIT(argc, argv);
     struct fuse2fs *fctx = malloc(sizeof(struct fuse2fs));
@@ -3759,7 +3759,7 @@ int mainExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 
 	memset(fctx, 0, sizeof(*fctx));
     fctx->raio = raio;
-//    fctx->device = strdup(path);
+    fctx->device_name_descr = strdup("device_name_descr");
 	fctx->magic = FUSE2FS_MAGIC;
 
 //	fuse_opt_parse(&args, &fctx, fuse2fs_opts, fuse2fs_opt_proc);
@@ -3806,8 +3806,8 @@ int mainExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 	if (!fctx->ro)
 		flags |= EXT2_FLAG_RW;
 	char options[50];
-	sprintf(options, "offset=%lu", fctx->offset);
-	err = ext2fs_open2(fctx->raio, options, flags, 0, 0, unix_io_manager,
+	sprintf(options, "offset=%lu", fctx->offset);//todoe abort revert
+	err = ext2fs_open2(fctx->raio, fctx->device_name_descr, options, flags, 0, 0, unix_io_manager,
 			   &global_fs);
 	if (err) {
 		printf(_("%s: %s.\n"), "fctx->device_name", error_message(err));
@@ -3847,7 +3847,7 @@ int mainExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 		if (ext2fs_has_feature_journal(global_fs->super))
 			printf(_("%s: Writing to the journal is not supported.\n"),
 			       "fctx->device_name");
-		err = ext2fs_read_inode_bitmap(global_fs);
+		err = ext2fs_read_inode_bitmap(global_fs); //todoe global_fs
 		if (err) {
 			translate_error(global_fs, 0, err);
 			goto out;

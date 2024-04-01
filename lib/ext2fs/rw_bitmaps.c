@@ -242,7 +242,7 @@ static errcode_t read_bitmaps_range_prepare(ext2_filsys fs, int flags)
 
 	fs->write_bitmaps = ext2fs_write_bitmaps;
 
-	retval = ext2fs_get_mem(strlen(fs->device_name) + 80, &buf);
+	retval = ext2fs_get_mem(strlen(fs->device_name_descr) + 80, &buf);
 	if (retval)
 		return retval;
 
@@ -250,7 +250,7 @@ static errcode_t read_bitmaps_range_prepare(ext2_filsys fs, int flags)
 		if (fs->block_map)
 			ext2fs_free_block_bitmap(fs->block_map);
 		strcpy(buf, "block bitmap for ");
-		strcat(buf, fs->device_name);
+		strcat(buf, fs->device_name_descr);
 		retval = ext2fs_allocate_block_bitmap(fs, buf, &fs->block_map);
 		if (retval)
 			goto cleanup;
@@ -260,7 +260,7 @@ static errcode_t read_bitmaps_range_prepare(ext2_filsys fs, int flags)
 		if (fs->inode_map)
 			ext2fs_free_inode_bitmap(fs->inode_map);
 		strcpy(buf, "inode bitmap for ");
-		strcat(buf, fs->device_name);
+		strcat(buf, fs->device_name_descr);
 		retval = ext2fs_allocate_inode_bitmap(fs, buf, &fs->inode_map);
 		if (retval)
 			goto cleanup;

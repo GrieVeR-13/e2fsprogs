@@ -47,7 +47,7 @@ struct inode_private_data {
 static struct inode_private_data *top_intern;
 static int ino_unique = 0;
 
-static errcode_t inode_open(const char *name, int flags, io_channel *channel);
+static errcode_t inode_open(jobject raio, int flags, io_channel *channel);
 static errcode_t inode_close(io_channel channel);
 static errcode_t inode_set_blksize(io_channel channel, int blksize);
 static errcode_t inode_read_blk(io_channel channel, unsigned long block,
@@ -111,14 +111,15 @@ errcode_t ext2fs_inode_io_intern(ext2_filsys fs, ext2_ino_t ino,
 }
 
 
-static errcode_t inode_open(const char *name, int flags, io_channel *channel)
+static errcode_t inode_open(jobject raio, int flags, io_channel *channel)
 {
-	io_channel	io = NULL;
+    abort();
+	/*io_channel	io = NULL;
 	struct inode_private_data *prev, *data = NULL;
 	errcode_t	retval;
 	int		open_flags;
 
-	if (name == 0)
+	if (raio == 0)
 		return EXT2_ET_BAD_DEVICE_NAME;
 
 	for (data = top_intern, prev = NULL; data;
@@ -168,7 +169,7 @@ cleanup:
 		ext2fs_free_mem(&data);
 	if (io)
 		ext2fs_free_mem(&io);
-	return retval;
+	return retval;*/
 }
 
 static errcode_t inode_close(io_channel channel)
@@ -186,8 +187,9 @@ static errcode_t inode_close(io_channel channel)
 	retval = ext2fs_file_close(data->file);
 
 	ext2fs_free_mem(&channel->private_data);
-	if (channel->name)
-		ext2fs_free_mem(&channel->name);
+    abort();
+//	if (channel->name)
+//		ext2fs_free_mem(&channel->name);
 	ext2fs_free_mem(&channel);
 	return retval;
 }
