@@ -33,7 +33,7 @@ void ext2fs_free(ext2_filsys fs)
 		io_channel_close(fs->io);
 	}
     if (fs->raio) {
-        JNIEnv *env = getEnv(); //todoe global
+        JNIEnv *env = getEnv();
         (*env)->DeleteGlobalRef(env, fs->raio);
     }
 	if (fs->device_name_descr)

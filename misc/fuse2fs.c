@@ -720,7 +720,9 @@ static int check_inum_access(ext2_filsys fs, ext2_ino_t ino, mode_t mask)
 	return -EACCES;
 }
 
-static int op_destroy(void *p EXT2FS_ATTR((unused)), int isForce)
+int unmountExt4(struct fuse2fs *fctx);
+
+static int op_destroy(void *p EXT2FS_ATTR((unused)), int isForce)//todoe isForce
 {
 	struct fuse_context *ctxt = fuse_get_context();
 	struct fuse2fs *ff = (struct fuse2fs *)ctxt->private_data;
@@ -746,7 +748,7 @@ static int op_destroy(void *p EXT2FS_ATTR((unused)), int isForce)
 		if (err)
 			translate_error(fs, 0, err);
 	}
-    return 0; //todoe
+    return unmountExt4(ff); //todoe check
 }
 
 static void *op_init(struct fuse_conn_info *conn)
@@ -3593,7 +3595,7 @@ out:
 # endif /* SUPPORT_FALLOCATE */
 #endif /* FUSE 29 */
 
-//fuse_operations
+//fuse_operations ext4
 static struct fuse_operations fs_ops = {
 	.init = op_init,
 	.destroy = op_destroy,
@@ -3914,7 +3916,7 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 	*fuseSession = cfuse_main(args.argc, args.argv, &fs_ops, fctx);
 //	pthread_mutex_destroy(&fctx->bfl);
 
-	ret = 0;
+	ret = 0; //todoe ret 1 tets
     return ret;
 out:
 	if (global_fs) {
@@ -3926,9 +3928,9 @@ out:
 	return ret;
 }
 
-int ext4FuseClose(struct fuse2fs *fctx) {
+int unmountExt4(struct fuse2fs *fctx) {
     pthread_mutex_destroy(&fctx->bfl);
-    if (global_fs) { //todoe global
+    if (global_fs) { //todoe rem global
         errcode_t err = ext2fs_close(global_fs);
         if (err)
             com_err("fuse ext4", err, "while closing fs");
