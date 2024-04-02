@@ -1492,7 +1492,7 @@ extern errcode_t ext2fs_get_num_dirs(ext2_filsys fs, ext2_ino_t *ret_num_dirs);
 /* getsize.c */
 extern errcode_t ext2fs_get_device_size(const char *file, int blocksize,
 					blk_t *retblocks);
-extern errcode_t ext2fs_get_device_size2(const char *file, int blocksize,
+extern errcode_t ext2fs_get_device_size2(jobject raio, int blocksize,
 					blk64_t *retblocks);
 
 /* getsectsize.c */
@@ -1520,7 +1520,7 @@ errcode_t ext2fs_read_ind_block(ext2_filsys fs, blk_t blk, void *buf);
 errcode_t ext2fs_write_ind_block(ext2_filsys fs, blk_t blk, void *buf);
 
 /* initialize.c */
-extern errcode_t ext2fs_initialize(const char *name, int flags,
+extern errcode_t ext2fs_initialize(jobject raio, const char *device_name_descr, int flags,
 				   struct ext2_super_block *param,
 				   io_manager manager, ext2_filsys *ret_fs);
 extern errcode_t ext2fs_calculate_summary_stats(ext2_filsys fs, int super_only);
@@ -1821,9 +1821,10 @@ extern void ext2fs_swap_inode(ext2_filsys fs,struct ext2_inode *t,
 extern void ext2fs_swap_mmp(struct mmp_struct *mmp);
 
 /* unix_io.c */
-/*extern int ext2fs_open_file(const char *pathname, int flags, mode_t mode);
-extern int ext2fs_stat(const char *path, ext2fs_struct_stat *buf);
-extern int ext2fs_fstat(int fd, ext2fs_struct_stat *buf);*/
+extern int ext2fs_open_file(jobject raio, int flags, mode_t mode);
+extern int ext2fs_close_file(int fd_raio);
+/*extern int ext2fs_stat(const char *path, ext2fs_struct_stat *buf);*/
+extern int ext2fs_fstat(int fd_raio, ext2fs_struct_stat *buf);
 
 /* valid_blk.c */
 extern int ext2fs_inode_has_valid_blocks(struct ext2_inode *inode);

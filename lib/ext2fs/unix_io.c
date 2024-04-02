@@ -687,7 +687,7 @@ retry:
 #endif
 #endif
 
-static int ext2fs_open_file(jobject raio, int flags, mode_t mode)
+int ext2fs_open_file(jobject raio, int flags, mode_t mode)
 {
     return uraio_open_by_raio(raio, getEnv());
 /*    if (mode)
@@ -700,6 +700,10 @@ static int ext2fs_open_file(jobject raio, int flags, mode_t mode)
 #endif*/
 }
 
+int ext2fs_close_file(int fd_raio) {
+    return uraio_close(fd_raio);
+}
+
 /*int ext2fs_stat(const char *path, ext2fs_struct_stat *buf)
 {
 #if defined(HAVE_FSTAT64) && !defined(__OSX_AVAILABLE_BUT_DEPRECATED)
@@ -709,7 +713,7 @@ static int ext2fs_open_file(jobject raio, int flags, mode_t mode)
 #endif
 }*/
 
-static int ext2fs_fstat(int fd_raio, ext2fs_struct_stat *buf)
+int ext2fs_fstat(int fd_raio, ext2fs_struct_stat *buf)
 {
 #if defined(HAVE_FSTAT64) && !defined(__OSX_AVAILABLE_BUT_DEPRECATED)
 	return fstat64(fd, buf);

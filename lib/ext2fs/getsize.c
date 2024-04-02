@@ -22,14 +22,14 @@
 #include "config.h"
 #include <stdio.h>
 #if HAVE_UNISTD_H
-#include <unistd.h>
+//#include <unistd.h>
 #endif
 #if HAVE_ERRNO_H
 #include <errno.h>
 #endif
 #include <fcntl.h>
 #ifdef HAVE_SYS_IOCTL_H
-#include <sys/ioctl.h>
+//#include <sys/ioctl.h>
 #endif
 #ifdef HAVE_LINUX_FD_H
 #include <linux/fd.h>
@@ -48,13 +48,15 @@
 #endif
 #include <ctype.h>
 
-#if defined(__linux__) && defined(_IO) && !defined(BLKGETSIZE)
-#define BLKGETSIZE _IO(0x12,96)	/* return device size */
-#endif
+/*#if defined(__linux__) && defined(_IO) && !defined(BLKGETSIZE)
+#define BLKGETSIZE _IO(0x12,96)	*//* return device size *//*
+#endif*/
 
-#if defined(__linux__) && defined(_IOR) && !defined(BLKGETSIZE64)
-#define BLKGETSIZE64 _IOR(0x12,114,size_t)	/* return device size in bytes (u64 *arg) */
-#endif
+/*#if defined(__linux__) && defined(_IOR) && !defined(BLKGETSIZE64)
+#define BLKGETSIZE64 _IOR(0x12,114,size_t)	*//* return device size in bytes (u64 *arg) *//*
+#endif*/
+
+#undef FDGETPRM
 
 #ifdef APPLE_DARWIN
 #define BLKGETSIZE DKIOCGETBLOCKCOUNT32
@@ -134,30 +136,29 @@ errcode_t ext2fs_get_device_size2(const char *file, int blocksize,
 
 #else
 
-static int valid_offset (int fd, ext2_loff_t offset)
+static int valid_offset (int fd_raio, ext2_loff_t offset)
 {
 	char ch;
-
-	if (ext2fs_llseek (fd, offset, 0) < 0)
+    abort();
+	if (ext2fs_llseek (fd_raio, offset, 0) < 0)
 		return 0;
-	if (read (fd, &ch, 1) < 1)
-		return 0;
+//	if (read (fd, &ch, 1) < 1)
+//		return 0;
 	return 1;
 }
 
 /*
  * Returns the number of blocks in a partition
  */
-errcode_t ext2fs_get_device_size2(const char *file, int blocksize,
+errcode_t ext2fs_get_device_size2(jobject raio, int blocksize,
 				  blk64_t *retblocks)
 {
-	int	fd, rc = 0;
+	int	fd_raio, rc = 0;
 	unsigned long long size64;
 	ext2_loff_t high, low;
 
-    abort();
-//	fd = ext2fs_open_file(file, O_RDONLY, 0);
-	if (fd < 0)
+    fd_raio = ext2fs_open_file(raio, O_RDONLY, 0);
+	if (fd_raio == -1)
 		return errno;
 
 #if defined DKIOCGETBLOCKCOUNT && defined DKIOCGETBLOCKSIZE	/* For Apple Darwin */
@@ -252,35 +253,36 @@ errcode_t ext2fs_get_device_size2(const char *file, int blocksize,
 
 	{
 		ext2fs_struct_stat st;
-        abort();
-		/*if (ext2fs_fstat(fd, &st) == 0)
+		if (ext2fs_fstat(fd_raio, &st) == 0)
 			if (S_ISREG(st.st_mode)) {
 				*retblocks = st.st_size / blocksize;
 				goto out;
-			}*/
+			}
 	}
 
+    rc = ENOENT;
+    goto out;
 	/*
 	 * OK, we couldn't figure it out by using a specialized ioctl,
 	 * which is generally the best way.  So do binary search to
 	 * find the size of the partition.
 	 */
 	low = 0;
-	for (high = 1024; valid_offset(fd, high); high *= 2)
+	for (high = 1024; valid_offset(fd_raio, high); high *= 2)
 		low = high;
 	while (low < high - 1) {
 		const ext2_loff_t mid = (low + high) / 2;
 
-		if (valid_offset (fd, mid))
+		if (valid_offset (fd_raio, mid))
 			low = mid;
 		else
 			high = mid;
 	}
-	valid_offset(fd, 0);
+	valid_offset(fd_raio, 0);
 	size64 = low + 1;
 	*retblocks = size64 / blocksize;
 out:
-	close(fd);
+    ext2fs_close_file(fd_raio);
 	return rc;
 }
 
@@ -301,6 +303,7 @@ errcode_t ext2fs_get_device_size(const char *file, int blocksize,
 	return 0;
 }
 
+#undef DEBUG
 #ifdef DEBUG
 int main(int argc, char **argv)
 {

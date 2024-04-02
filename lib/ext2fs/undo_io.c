@@ -732,8 +732,9 @@ static errcode_t undo_open(const char *name, int flags, io_channel *channel)
 	data->undo_blk_num = 3;
 
 	if (undo_io_backing_manager) {
-		retval = undo_io_backing_manager->open(name, flags,
-						       &data->real);
+        abort();
+//		retval = undo_io_backing_manager->open(name, flags,
+//						       &data->real);
 		if (retval)
 			goto cleanup;
 
@@ -746,9 +747,10 @@ static errcode_t undo_open(const char *name, int flags, io_channel *channel)
 		if (undo_fd < 0)
 			goto cleanup;
 
-		retval = undo_io_backing_manager->open(data->tdb_file,
-						       IO_FLAG_RW,
-						       &data->undo_file);
+        abort();
+//		retval = undo_io_backing_manager->open(data->tdb_file,
+//						       IO_FLAG_RW,
+//						       &data->undo_file);
 		if (retval)
 			goto cleanup;
 	} else {

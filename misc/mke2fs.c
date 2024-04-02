@@ -29,13 +29,13 @@
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
 #endif
 #ifdef HAVE_GETOPT_H
-#include <getopt.h>
+#include <getopt.h> //todoe
 #else
 extern char *optarg;
 extern int optind;
 #endif
 #ifdef HAVE_UNISTD_H
-#include <unistd.h>
+//#include <unistd.h>
 #endif
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
@@ -44,11 +44,11 @@ extern int optind;
 #include <errno.h>
 #endif
 #ifdef HAVE_SYS_IOCTL_H
-#include <sys/ioctl.h>
+//#include <sys/ioctl.h>
 #endif
 #include <libgen.h>
 #include <limits.h>
-#include <blkid/blkid.h>
+//#include <blkid/blkid.h>
 
 #include "ext2fs/ext2_fs.h"
 #include "ext2fs/ext2fsP.h"
@@ -76,8 +76,8 @@ extern int optind;
 extern int isatty(int);
 extern FILE *fpopen(const char *cmd, const char *mode);
 
-const char * program_name = "mke2fs";
-static const char * device_name /* = NULL */;
+const char * program_name = "mke2fs"; //todoe static
+//static const char * device_name /* = NULL */;
 
 /* Command line options */
 static int	cflag;
@@ -259,7 +259,7 @@ static void test_disk(ext2_filsys fs, badblocks_list *bb_list)
 
 	sprintf(buf, "badblocks -b %d -X %s%s%s %llu", fs->blocksize,
 		quiet ? "" : "-s ", (cflag > 1) ? "-w " : "",
-		fs->device_name,
+		fs->device_name_descr,
 		(unsigned long long) ext2fs_blocks_count(fs->super)-1);
 	if (verbose)
 		printf(_("Running command: %s\n"), buf);
@@ -1045,8 +1045,9 @@ static void parse_extended_opts(struct ext2_super_block *param,
 					continue;
 				}
 			} else {
-				root_uid = getuid();
-				root_gid = getgid();
+                abort();
+//				root_uid = getuid();
+//				root_gid = getgid();
 			}
 		} else if (!strcmp(token, "discard")) {
 			discard = 1;
@@ -1218,7 +1219,7 @@ static void syntax_err_report(const char *filename, long err, int line_num)
 	exit(1);
 }
 
-static const char *config_fn[] = { ROOT_SYSCONFDIR "/mke2fs.conf", 0 };
+//static const char *config_fn[] = { ROOT_SYSCONFDIR "/mke2fs.conf", 0 };
 
 static void edit_feature(const char *str, __u32 *compat_array)
 {
@@ -1530,6 +1531,7 @@ static int get_device_geometry(const char *file,
 	memset(dev_param, 0, sizeof(*dev_param));
 
 	/* Nothing to do for a regular file */
+    abort();
 	if (!stat(file, &statbuf) && S_ISREG(statbuf.st_mode))
 		return 0;
 
@@ -1561,7 +1563,7 @@ out:
 }
 #endif
 
-static void PRS(int argc, char *argv[])
+static int PRS(jobject raio, const char *device_name_descr, int argc, char *argv[])
 {
 	int		b, c, flags;
 	int		cluster_size = 0;
@@ -1640,10 +1642,10 @@ static void PRS(int argc, char *argv[])
 #endif /* _SC_PAGESIZE */
 #endif /* HAVE_SYSCONF */
 
-	if ((tmp = getenv("MKE2FS_CONFIG")) != NULL)
-		config_fn[0] = tmp;
+//	if ((tmp = getenv("MKE2FS_CONFIG")) != NULL)
+//		config_fn[0] = tmp;
 	profile_set_syntax_err_cb(syntax_err_report);
-	retval = profile_init(config_fn, &profile);
+	/*retval = profile_init(config_fn, &profile);
 	if (retval == ENOENT) {
 		retval = profile_init(default_files, &profile);
 		if (retval)
@@ -1657,7 +1659,7 @@ profile_error:
 				  " (error: %ld).\n"), retval);
 		exit(1);
 	}
-
+*/
 	setbuf(stdout, NULL);
 	setbuf(stderr, NULL);
 	add_error_table(&et_ext2_error_table);
@@ -1929,7 +1931,7 @@ profile_error:
 	}
 	if ((optind == argc) && !show_version_only)
 		usage();
-	device_name = argv[optind++];
+//	device_name = argv[optind++];
 
 	if (!quiet || show_version_only)
 		fprintf (stderr, "mke2fs %s (%s)\n", E2FSPROGS_VERSION,
@@ -1985,7 +1987,7 @@ profile_error:
 		if (!fs_blocks_count) {
 			com_err(program_name, 0,
 				_("invalid blocks '%s' on device '%s'"),
-				argv[optind - 1], device_name);
+				argv[optind - 1], device_name_descr);
 			exit(1);
 		}
 	}
@@ -2004,40 +2006,41 @@ profile_error:
 	if (fs_blocks_count)
 		explicit_fssize = 1;
 
-	check_mount(device_name, force, _("filesystem"));
+//	check_mount(device_name, force, _("filesystem"));
 
 	/* Determine the size of the device (if possible) */
 	if (noaction && fs_blocks_count) {
 		dev_size = fs_blocks_count;
 		retval = 0;
 	} else
-		retval = ext2fs_get_device_size2(device_name,
+		retval = ext2fs_get_device_size2(raio,
 						 EXT2_BLOCK_SIZE(&fs_param),
 						 &dev_size);
+    /*
 	if (retval == ENOENT) {
-		int fd;
+		int fd_raio;
 
 		if (!explicit_fssize) {
 			fprintf(stderr,
 				_("The file %s does not exist and no "
-				  "size was specified.\n"), device_name);
+				  "size was specified.\n"), device_name_descr);
 			exit(1);
 		}
-		fd = ext2fs_open_file(device_name,
+		fd_raio = ext2fs_open_file(raio,
 				      O_CREAT | O_WRONLY, 0666);
-		if (fd < 0) {
+		if (fd_raio == -1) {
 			retval = errno;
 		} else {
 			dev_size = 0;
 			retval = 0;
-			close(fd);
-			printf(_("Creating regular file %s\n"), device_name);
+            ext2fs_close_file(fd_raio);
+			printf(_("Creating regular file %s\n"), device_name_descr);
 		}
-	}
+	}*/
 	if (retval && (retval != EXT2_ET_UNIMPLEMENTED)) {
 		com_err(program_name, retval, "%s",
 			_("while trying to determine filesystem size"));
-		exit(1);
+		exit(1); //todoe exit chec
 	}
 	if (!fs_blocks_count) {
 		if (retval == EXT2_ET_UNIMPLEMENTED) {
@@ -2067,14 +2070,15 @@ profile_error:
 	} else if (!force && is_device && (fs_blocks_count > dev_size)) {
 		com_err(program_name, 0, "%s",
 			_("Filesystem larger than apparent device size."));
-		proceed_question(proceed_delay);
+        return 1;
+//		proceed_question(proceed_delay);
 	}
 
 	if (!fs_type)
-		profile_get_string(profile, "devices", device_name,
+		profile_get_string(profile, "devices", device_name_descr,
 				   "fs_type", 0, &fs_type);
 	if (!usage_types)
-		profile_get_string(profile, "devices", device_name,
+		profile_get_string(profile, "devices", device_name_descr,
 				   "usage_types", 0, &usage_types);
 	if (!creator_os)
 		profile_get_string(profile, "defaults", "creator_os", 0,
@@ -2177,7 +2181,7 @@ profile_error:
 	}
 
 	/* Get the hardware sector sizes, if available */
-	retval = ext2fs_get_device_sectsize(device_name, &lsector_size);
+	/*retval = ext2fs_get_device_sectsize(device_name, &lsector_size);
 	if (retval) {
 		com_err(program_name, retval, "%s",
 			_("while trying to determine hardware sector size"));
@@ -2188,14 +2192,14 @@ profile_error:
 		com_err(program_name, retval, "%s",
 			_("while trying to determine physical sector size"));
 		exit(1);
-	}
+	}*/
 
-	tmp = getenv("MKE2FS_DEVICE_SECTSIZE");
+/*	tmp = getenv("MKE2FS_DEVICE_SECTSIZE");
 	if (tmp != NULL)
 		lsector_size = atoi(tmp);
 	tmp = getenv("MKE2FS_DEVICE_PHYS_SECTSIZE");
 	if (tmp != NULL)
-		psector_size = atoi(tmp);
+		psector_size = atoi(tmp);*/
 
 	/* Older kernels may not have physical/logical distinction */
 	if (!psector_size)
@@ -2251,7 +2255,7 @@ profile_error:
 				  "too big to be expressed\n\t"
 				  "in 32 bits using a blocksize of %d.\n"),
 			program_name, (unsigned long long) fs_blocks_count,
-			device_name, EXT2_BLOCK_SIZE(&fs_param));
+			device_name_descr, EXT2_BLOCK_SIZE(&fs_param));
 		exit(1);
 	}
 	/*
@@ -2265,7 +2269,7 @@ profile_error:
 				  "too big to create\n\t"
 				  "a filesystem using a blocksize of %d.\n"),
 			program_name, (unsigned long long) fs_blocks_count,
-			device_name, EXT2_BLOCK_SIZE(&fs_param));
+			device_name_descr, EXT2_BLOCK_SIZE(&fs_param));
 		exit(1);
 	}
 
@@ -2453,8 +2457,8 @@ profile_error:
 	else
 		lazy_itable_init = 1;
 
-	if (access("/sys/fs/ext4/features/lazy_itable_init", R_OK) == 0)
-		lazy_itable_init = 1;
+//	if (access("/sys/fs/ext4/features/lazy_itable_init", R_OK) == 0)
+//		lazy_itable_init = 1;
 
 	lazy_itable_init = get_bool_from_profile(fs_types,
 						 "lazy_itable_init",
@@ -2721,7 +2725,7 @@ _("128-byte inodes cannot handle dates beyond 2038 and are deprecated\n"));
 	free(usage_types);
 
 	/* The isatty() test is so we don't break existing scripts */
-	flags = CREATE_FILE;
+	/*flags = CREATE_FILE;
 	if (isatty(0) && isatty(1) && !offset)
 		flags |= CHECK_FS_EXIST;
 	if (!quiet)
@@ -2729,10 +2733,10 @@ _("128-byte inodes cannot handle dates beyond 2038 and are deprecated\n"));
 	if (!explicit_fssize)
 		flags |= NO_SIZE;
 	if (!check_plausibility(device_name, flags, &is_device) && !force)
-		proceed_question(proceed_delay);
+		proceed_question(proceed_delay);*/
 }
 
-static int should_do_undo(const char *name)
+static int should_do_undo(jobject raio, const char *device_name_descr)
 {
 	errcode_t retval;
 	io_channel channel;
@@ -2747,7 +2751,7 @@ static int should_do_undo(const char *name)
 	if (!force_undo && (!csum_flag || !lazy_itable_init))
 		return 0;
 
-	retval = manager->open(name, IO_FLAG_EXCLUSIVE,  &channel);
+	retval = manager->open(raio, device_name_descr, IO_FLAG_EXCLUSIVE,  &channel);
 	if (retval) {
 		/*
 		 * We don't handle error cases instead we
@@ -2785,6 +2789,7 @@ open_err_out:
 
 static int mke2fs_setup_tdb(const char *name, io_manager *io_ptr)
 {
+    abort();
 	errcode_t retval = ENOMEM;
 	char *tdb_dir = NULL, *tdb_file = NULL;
 	char *dev_name, *tmp_name;
@@ -2817,12 +2822,12 @@ static int mke2fs_setup_tdb(const char *name, io_manager *io_ptr)
 		free_tdb_dir = 1;
 	}
 
-	if (!strcmp(tdb_dir, "none") || (tdb_dir[0] == 0) ||
+/*	if (!strcmp(tdb_dir, "none") || (tdb_dir[0] == 0) ||
 	    access(tdb_dir, W_OK)) {
 		if (free_tdb_dir)
 			free(tdb_dir);
 		return 0;
-	}
+	}*/
 
 	tmp_name = strdup(name);
 	if (!tmp_name)
@@ -2836,12 +2841,12 @@ static int mke2fs_setup_tdb(const char *name, io_manager *io_ptr)
 	sprintf(tdb_file, "%s/mke2fs-%s.e2undo", tdb_dir, dev_name);
 	free(tmp_name);
 
-	if ((unlink(tdb_file) < 0) && (errno != ENOENT)) {
+/*	if ((unlink(tdb_file) < 0) && (errno != ENOENT)) {
 		retval = errno;
 		com_err(program_name, retval,
 			_("while trying to delete %s"), tdb_file);
 		goto errout;
-	}
+	}*/
 
 	retval = set_undo_io_backing_manager(*io_ptr);
 	if (retval)
@@ -3012,7 +3017,7 @@ try_user:
 	return 0;
 }
 
-int main (int argc, char *argv[])
+int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv[])
 {
 	errcode_t	retval = 0;
 	ext2_filsys	fs;
@@ -3038,7 +3043,7 @@ int main (int argc, char *argv[])
 	textdomain(NLS_CAT_NAME);
 	set_com_err_gettext(gettext);
 #endif
-	PRS(argc, argv);
+	PRS(raio, device_name_descr, argc, argv);
 
 #ifdef CONFIG_TESTIO_DEBUG
 	if (getenv("TEST_IO_FLAGS") || getenv("TEST_IO_BLOCK")) {
@@ -3048,11 +3053,11 @@ int main (int argc, char *argv[])
 #endif
 		io_ptr = default_io_manager;
 
-	if (undo_file != NULL || should_do_undo(device_name)) {
+	/*if (undo_file != NULL || should_do_undo(raio, device_name_descr)) {
 		retval = mke2fs_setup_tdb(device_name, &io_ptr);
 		if (retval)
 			exit(1);
-	}
+	}*/
 
 	/*
 	 * Initialize the superblock....
@@ -3072,7 +3077,7 @@ int main (int argc, char *argv[])
 	if (!quiet)
 		flags |= EXT2_FLAG_PRINT_PROGRESS;
 	if (android_sparse_file) {
-		char *android_sparse_params = malloc(strlen(device_name) + 48);
+		char *android_sparse_params = malloc(strlen(device_name_descr) + 48);
 
 		if (!android_sparse_params) {
 			com_err(program_name, ENOMEM, "%s",
@@ -3080,16 +3085,16 @@ int main (int argc, char *argv[])
 			exit(1);
 		}
 		sprintf(android_sparse_params, "(%s):%u:%u",
-			 device_name, fs_param.s_blocks_count,
+			 device_name_descr, fs_param.s_blocks_count,
 			 1024 << fs_param.s_log_block_size);
-		retval = ext2fs_initialize(android_sparse_params, flags,
+		retval = ext2fs_initialize(raio, android_sparse_params, flags,
 					   &fs_param, sparse_io_manager, &fs);
 		free(android_sparse_params);
 	} else
-		retval = ext2fs_initialize(device_name, flags, &fs_param,
+		retval = ext2fs_initialize(raio, device_name_descr, flags, &fs_param,
 					   io_ptr, &fs);
 	if (retval) {
-		com_err(device_name, retval, "%s",
+		com_err(device_name_descr, retval, "%s",
 			_("while setting up superblock"));
 		exit(1);
 	}
@@ -3194,7 +3199,7 @@ int main (int argc, char *argv[])
 		} else if (strcasecmp(fs_uuid, "random") == 0) {
 			uuid_generate(fs->super->s_uuid);
 		} else if (uuid_parse(fs_uuid, fs->super->s_uuid) != 0) {
-			com_err(device_name, 0, "could not parse UUID: %s\n",
+			com_err(device_name_descr, 0, "could not parse UUID: %s\n",
 				fs_uuid);
 			exit(1);
 		}
@@ -3380,9 +3385,10 @@ int main (int argc, char *argv[])
 	}
 
 	if (super_only) {
-		check_plausibility(device_name, CHECK_FS_EXIST, NULL);
+        abort();
+//		check_plausibility(device_name, CHECK_FS_EXIST, NULL);
 		printf(_("%s may be further corrupted by superblock rewrite\n"),
-		       device_name);
+		       device_name_descr);
 		if (!force)
 			proceed_question(proceed_delay);
 		fs->super->s_state |= EXT2_ERROR_FS;
@@ -3548,7 +3554,8 @@ no_journal:
 		}
 	}
 
-	retval = mk_hugefiles(fs, device_name);
+    abort();
+//	retval = mk_hugefiles(fs, device_name);
 	if (retval)
 		com_err(program_name, retval, "while creating huge files");
 	/* Copy files from the specified directory */

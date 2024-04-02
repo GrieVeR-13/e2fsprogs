@@ -85,11 +85,10 @@ static unsigned int calc_reserved_gdt_blocks(ext2_filsys fs)
 	return rsv_gdb;
 }
 
-errcode_t ext2fs_initialize(const char *name, int flags,
+errcode_t ext2fs_initialize(jobject raio, const char *device_name_descr, int flags,
 			    struct ext2_super_block *param,
 			    io_manager manager, ext2_filsys *ret_fs)
 {
-    abort();
 	ext2_filsys	fs;
 	errcode_t	retval;
 	struct ext2_super_block *super;
@@ -136,16 +135,16 @@ errcode_t ext2fs_initialize(const char *name, int flags,
 	if (flags & EXT2_FLAG_DIRECT_IO)
 		io_flags |= IO_FLAG_DIRECT_IO;
 	io_flags |= O_BINARY;
-	/*retval = manager->open(name, io_flags, &fs->io);
+	retval = manager->open(raio, device_name_descr, io_flags, &fs->io);
 	if (retval)
-		goto cleanup;*/
+		goto cleanup;
 	fs->image_io = fs->io;
 	fs->io->app_data = fs;
-	retval = ext2fs_get_mem(strlen(name)+1, &fs->device_name_descr);
+	retval = ext2fs_get_mem(strlen(device_name_descr)+1, &fs->device_name_descr);
 	if (retval)
 		goto cleanup;
 
-	strcpy(fs->device_name_descr, name);
+	strcpy(fs->device_name_descr, device_name_descr);
 	retval = ext2fs_get_mem(SUPERBLOCK_SIZE, &super);
 	if (retval)
 		goto cleanup;
