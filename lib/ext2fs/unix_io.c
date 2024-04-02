@@ -689,7 +689,7 @@ retry:
 
 int ext2fs_open_file(jobject raio, int flags, mode_t mode)
 {
-    return uraio_open_by_raio(raio, getEnv());
+    return uraio_get_fd_by_raio(raio, getEnv());
 /*    if (mode)
 #if defined(HAVE_OPEN64) && !defined(__OSX_AVAILABLE_BUT_DEPRECATED)
 		return open64(pathname, flags, mode);
@@ -701,7 +701,8 @@ int ext2fs_open_file(jobject raio, int flags, mode_t mode)
 }
 
 int ext2fs_close_file(int fd_raio) {
-    return uraio_close(fd_raio);
+    uraio_release(fd_raio);
+    return 0;
 }
 
 /*int ext2fs_stat(const char *path, ext2fs_struct_stat *buf)
@@ -904,7 +905,7 @@ static errcode_t unix_open_channel(const char *device_name_descr, int fd_raio,
 cleanup:
 	if (data) {
 		if (data->dev_raio != -1)
-			uraio_close(data->dev_raio);
+			uraio_release(data->dev_raio);
 		free_cache(data);
 		ext2fs_free_mem(&data);
 	}
@@ -987,7 +988,7 @@ static errcode_t unix_close(io_channel channel)
 	retval = flush_cached_blocks(channel, data, 0);
 #endif
 
-	if (uraio_close(data->dev_raio) < 0)
+	if (uraio_release(data->dev_raio) < 0)
 		retval = errno;
 	free_cache(data);
 #ifdef HAVE_PTHREAD
@@ -1348,15 +1349,14 @@ static errcode_t unix_set_option(io_channel channel, const char *option,
 	return EXT2_ET_INVALID_ARGUMENT;
 }
 
-#if defined(__linux__) && !defined(BLKDISCARD)
-#define BLKDISCARD		_IO(0x12,119)
-#endif
+//#if defined(__linux__) && !defined(BLKDISCARD)
+//#define BLKDISCARD		_IO(0x12,119)
+//#endif
 
 static errcode_t unix_discard(io_channel channel, unsigned long long block,
 			      unsigned long long count)
 {
-    abort();
-	/*struct unix_private_data *data;
+	struct unix_private_data *data;
 	int		ret = EOPNOTSUPP;
 
 	EXT2_CHECK_MAGIC(channel, EXT2_ET_MAGIC_IO_CHANNEL);
@@ -1400,7 +1400,7 @@ static errcode_t unix_discard(io_channel channel, unsigned long long block,
 	}
 	return 0;
 unimplemented:
-	return EXT2_ET_UNIMPLEMENTED;*/
+	return EXT2_ET_UNIMPLEMENTED;
 }
 
 /*

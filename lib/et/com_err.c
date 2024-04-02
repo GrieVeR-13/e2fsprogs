@@ -22,6 +22,7 @@
 #include "com_err.h"
 #include "error_table.h"
 #include "internal.h"
+#include "log.h"
 
 static void
 default_com_err_proc (const char *whoami, errcode_t code, const
@@ -81,6 +82,10 @@ void com_err (const char *whoami,
 
     if (!com_err_hook)
 	com_err_hook = default_com_err_proc;
+    LOGE("%s: error code %ld", whoami, code);
+    va_start(pvar, fmt);
+    __android_log_vprint(ANDROID_LOG_ERROR, EDSTAG, fmt, pvar);
+    va_end(pvar);
     va_start(pvar, fmt);
     com_err_va (whoami, code, fmt, pvar);
     va_end(pvar);

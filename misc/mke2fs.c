@@ -1563,8 +1563,9 @@ out:
 }
 #endif
 
-static int PRS(jobject raio, const char *device_name_descr, int argc, char *argv[])
+static int PRS(jobject raio, int argc, char *argv[])
 {
+    const char * device_name_descr;
 	int		b, c, flags;
 	int		cluster_size = 0;
 	char 		*tmp, **cpp;
@@ -1624,7 +1625,7 @@ static int PRS(jobject raio, const char *device_name_descr, int argc, char *argv
 	if (oldpath) {
 		strcat (newpath, ":");
 		strcat (newpath, oldpath);
-	}
+	}//todoe
 	putenv (newpath);
 
 	/* Determine the system page size if possible */
@@ -1928,10 +1929,11 @@ profile_error:
 		default:
 			usage();
 		}
-	}
+	}//todoe optind arg count global, multiple format check
 	if ((optind == argc) && !show_version_only)
 		usage();
-//	device_name = argv[optind++];
+
+	device_name_descr = argv[optind++];
 
 	if (!quiet || show_version_only)
 		fprintf (stderr, "mke2fs %s (%s)\n", E2FSPROGS_VERSION,
@@ -1947,7 +1949,7 @@ profile_error:
 	 * If there's no blocksize specified and there is a journal
 	 * device, use it to figure out the blocksize
 	 */
-	if (blocksize <= 0 && journal_device) {
+	if (blocksize <= 0 && journal_device) { //todoe check ext3, ext2
 		ext2_filsys	jfs;
 		io_manager	io_ptr;
 
@@ -2194,12 +2196,12 @@ profile_error:
 		exit(1);
 	}*/
 
-/*	tmp = getenv("MKE2FS_DEVICE_SECTSIZE");
+	tmp = getenv("MKE2FS_DEVICE_SECTSIZE");
 	if (tmp != NULL)
 		lsector_size = atoi(tmp);
 	tmp = getenv("MKE2FS_DEVICE_PHYS_SECTSIZE");
 	if (tmp != NULL)
-		psector_size = atoi(tmp);*/
+		psector_size = atoi(tmp);
 
 	/* Older kernels may not have physical/logical distinction */
 	if (!psector_size)
@@ -3043,7 +3045,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 	textdomain(NLS_CAT_NAME);
 	set_com_err_gettext(gettext);
 #endif
-	PRS(raio, device_name_descr, argc, argv);
+	PRS(raio, argc, argv);
 
 #ifdef CONFIG_TESTIO_DEBUG
 	if (getenv("TEST_IO_FLAGS") || getenv("TEST_IO_BLOCK")) {
@@ -3553,17 +3555,17 @@ no_journal:
 		}
 	}
 
-    abort();
-//	retval = mk_hugefiles(fs, device_name);
+	retval = mk_hugefiles(fs/*, device_name*/);
 	if (retval)
 		com_err(program_name, retval, "while creating huge files");
 	/* Copy files from the specified directory */
 	if (src_root_dir) {
+        abort();
 		if (!quiet)
 			printf("%s", _("Copying files into the device: "));
 
-		retval = populate_fs(fs, EXT2_ROOT_INO, src_root_dir,
-				     EXT2_ROOT_INO);
+//		retval = populate_fs(fs, EXT2_ROOT_INO, src_root_dir,
+//				     EXT2_ROOT_INO);
 		if (retval) {
 			com_err(program_name, retval, "%s",
 				_("while populating file system"));
