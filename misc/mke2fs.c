@@ -3152,7 +3152,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 
 		lazy_itable_init = 1;
 		itable_zeroed = 1;
-		zero_hugefile = 0;
+//		zero_hugefile = 0;
 		journal_flags |= EXT2_MKJOURNAL_LAZYINIT;
 	}
 
@@ -3166,7 +3166,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 					 "0s - skipping inode table wipe\n"));
 			lazy_itable_init = 1;
 			itable_zeroed = 1;
-			zero_hugefile = 0;
+//			zero_hugefile = 0;
 		}
 	}
 
@@ -3385,8 +3385,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 	}
 
 	if (super_only) {
-        abort();
-//		check_plausibility(device_name, CHECK_FS_EXIST, NULL);
+		check_plausibility(device_name_descr, CHECK_FS_EXIST, NULL);
 		printf(_("%s may be further corrupted by superblock rewrite\n"),
 		       device_name_descr);
 		if (!force)

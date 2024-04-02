@@ -12,8 +12,8 @@
 #ifndef DEVNAME_H_
 #define DEVNAME_H_
 
-#include "blkid/blkid.h"
+//#include "blkid/blkid.h"
 
-char *get_devname(blkid_cache cache, const char *token, const char *value);
+//char *get_devname(blkid_cache cache, const char *token, const char *value);
 
 #endif /* DEVNAME_H_ */

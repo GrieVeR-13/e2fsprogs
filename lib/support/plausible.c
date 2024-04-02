@@ -35,7 +35,7 @@
 #include "plausible.h"
 #include "ext2fs/ext2fs.h"
 #include "nls-enable.h"
-#include "blkid/blkid.h"
+//#include "blkid/blkid.h"
 
 #ifdef HAVE_MAGIC_H
 static magic_t (*dl_magic_open)(int);
@@ -102,8 +102,9 @@ static void print_ext2_info(const char *device)
 	errcode_t		retval;
 	time_t			tm;
 
-	retval = ext2fs_open2(device, 0, EXT2_FLAG_64BITS, 0, 0,
-			      default_io_manager, &fs);
+    abort();
+//	retval = ext2fs_open2(device, 0, EXT2_FLAG_64BITS, 0, 0,
+//			      default_io_manager, &fs);
 	if (retval)
 		return;
 	sb = fs->super;
@@ -175,7 +176,8 @@ static int check_partition_table(const char *device EXT2FS_ATTR((unused)))
  */
 int check_plausibility(const char *device, int flags, int *ret_is_dev)
 {
-	int fd, ret, is_dev = 0;
+    abort();
+	/*int fd, ret, is_dev = 0;
 	ext2fs_struct_stat s;
 	int fl = O_RDONLY;
 	blkid_cache cache = NULL;
@@ -212,7 +214,7 @@ int check_plausibility(const char *device, int flags, int *ret_is_dev)
 	if (S_ISBLK(s.st_mode))
 		is_dev = 1;
 #if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
-	/* On FreeBSD, all disk devices are character specials */
+	*//* On FreeBSD, all disk devices are character specials *//*
 	if (S_ISCHR(s.st_mode))
 		is_dev = 1;
 #endif
@@ -224,7 +226,7 @@ int check_plausibility(const char *device, int flags, int *ret_is_dev)
 		return 0;
 	}
 
-	/*
+	*//*
 	 * Note: we use the older-style blkid API's here because we
 	 * want as much functionality to be available when using the
 	 * internal blkid library, when e2fsprogs is compiled for
@@ -232,7 +234,7 @@ int check_plausibility(const char *device, int flags, int *ret_is_dev)
 	 * from util-linux available.  We only use the newer
 	 * blkid-probe interfaces to access functionality not
 	 * available in the original blkid library.
-	 */
+	 *//*
 	if ((flags & CHECK_FS_EXIST) && blkid_get_cache(&cache, NULL) >= 0) {
 		fs_type = blkid_get_tag_value(cache, "TYPE", device);
 		if (fs_type)
@@ -282,6 +284,6 @@ int check_plausibility(const char *device, int flags, int *ret_is_dev)
 		if (ret >= 0)
 			return ret;
 	}
-	return 1;
+	return 1;*/
 }
 
