@@ -2479,6 +2479,7 @@ profile_error:
 		journal_location = parse_num_blocks2(journal_location_string,
 						fs_param.s_log_block_size);
 	free(journal_location_string);
+    journal_location_string = NULL;
 
 	packed_meta_blocks = get_bool_from_profile(fs_types,
 						   "packed_meta_blocks", 0);
@@ -2725,7 +2726,7 @@ _("128-byte inodes cannot handle dates beyond 2038 and are deprecated\n"));
 
 	free(fs_type);
 	free(usage_types);
-
+//todoe
 	/* The isatty() test is so we don't break existing scripts */
 	/*flags = CREATE_FILE;
 	if (isatty(0) && isatty(1) && !offset)
@@ -3038,6 +3039,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 	int		itable_zeroed = 0;
 	blk64_t		overhead;
 
+    optind = 1; //global variable
 #ifdef ENABLE_NLS
 	setlocale(LC_MESSAGES, "");
 	setlocale(LC_CTYPE, "");

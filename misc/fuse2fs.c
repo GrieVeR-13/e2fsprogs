@@ -2761,9 +2761,10 @@ out:
 struct readdir_iter {
 	void *buf;
 	fuse_fill_dir_t func;
+    ext2_filsys fs;
 };
 
-static int op_readdir_iter(ext2_filsys fs, ext2_ino_t dir EXT2FS_ATTR((unused)),
+static int op_readdir_iter(ext2_ino_t dir EXT2FS_ATTR((unused)),
 			   int entry EXT2FS_ATTR((unused)),
 			   struct ext2_dir_entry *dirent,
 			   int offset EXT2FS_ATTR((unused)),
@@ -2777,7 +2778,7 @@ static int op_readdir_iter(ext2_filsys fs, ext2_ino_t dir EXT2FS_ATTR((unused)),
 	memcpy(namebuf, dirent->name, dirent->name_len & 0xFF);
 	namebuf[dirent->name_len & 0xFF] = 0;
     struct stat statbuf;
-    ret = stat_inode(fs, dirent->inode, &statbuf);
+    ret = stat_inode(i->fs, dirent->inode, &statbuf);
     if (ret)
         return DIRENT_ABORT;
 
@@ -2809,6 +2810,7 @@ static int op_readdir(const char *path EXT2FS_ATTR((unused)),
 	pthread_mutex_lock(&ff->bfl);
 	i.buf = buf;
 	i.func = fill_func;
+	i.fs = fs;
 	err = ext2fs_dir_iterate2(fs, fh->ino, 0, NULL, op_readdir_iter, &i);
 	if (err) {
 		ret = translate_error(fs, fh->ino, err);
