@@ -421,7 +421,7 @@ do {									       \
 
 #define EXT4_INODE_GET_XTIME(ext4_inode_type, xtime, timespec, raw_inode)		       \
 do {									       \
-	(timespec)->tv_sec = (signed)((raw_inode)->xtime);		       \
+	(timespec)->tv_sec = ((raw_inode)->xtime);		       \
 	if (EXT4_FITS_IN_INODE(ext4_inode_type, raw_inode, xtime ## _extra))		       \
 		ext4_decode_extra_time((timespec),			       \
 				       (raw_inode)->xtime ## _extra);	       \
