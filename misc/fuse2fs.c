@@ -373,14 +373,8 @@ static int __translate_error(ext2_filsys fs, errcode_t err, ext2_ino_t ino,
  * This macro checks if a certain field fits in the inode. Note that
  * inode-size = GOOD_OLD_INODE_SIZE + i_extra_isize
  */
-#define EXT4_FITS_IN_INODE2(ext4_inode_type, ext4_inode, field)		\
+#define EXT4_FITS_IN_INODE(ext4_inode_type, ext4_inode, field)		\
 	((offsetof(ext4_inode_type, field) +	\
-	  sizeof((ext4_inode)->field))			\
-	 <= ((size_t) EXT2_GOOD_OLD_INODE_SIZE +		\
-	    (ext4_inode)->i_extra_isize))		\
-
-#define EXT4_FITS_IN_INODE(ext4_inode, field)		\
-	((offsetof(typeof(*ext4_inode), field) +	\
 	  sizeof((ext4_inode)->field))			\
 	 <= ((size_t) EXT2_GOOD_OLD_INODE_SIZE +		\
 	    (ext4_inode)->i_extra_isize))		\
@@ -407,34 +401,33 @@ static inline void ext4_decode_extra_time(struct timespec *time, __u32 extra)
 	}
 	time->tv_nsec = ((extra) & EXT4_NSEC_MASK) >> EXT4_EPOCH_BITS;
 }
-
-#define EXT4_INODE_SET_XTIME(xtime, timespec, raw_inode)		       \
-//do {									       \
-//	(raw_inode)->xtime = (timespec)->tv_sec;			       \
-//	if (EXT4_FITS_IN_INODE(raw_inode, xtime ## _extra))		       \
-//		(raw_inode)->xtime ## _extra =				       \
-//				ext4_encode_extra_time(timespec);	       \
-//} while (0)
-//todoe
-
-#define EXT4_EINODE_SET_XTIME(xtime, timespec, raw_inode)		       \
+#define EXT4_INODE_SET_XTIME(ext4_inode_type, xtime, timespec, raw_inode)		       \
 do {									       \
-	if (EXT4_FITS_IN_INODE(raw_inode, xtime))			       \
-		(raw_inode)->xtime = (timespec)->tv_sec;		       \
-	if (EXT4_FITS_IN_INODE(raw_inode, xtime ## _extra))		       \
+	(raw_inode)->xtime = (timespec)->tv_sec;			       \
+	if (EXT4_FITS_IN_INODE(ext4_inode_type, raw_inode, xtime ## _extra))		       \
 		(raw_inode)->xtime ## _extra =				       \
 				ext4_encode_extra_time(timespec);	       \
 } while (0)
 
-#define EXT4_INODE_GET_XTIME(xtime, timespec, raw_inode)		       \
-//do {									       \
-//	(timespec)->tv_sec = (signed)((raw_inode)->xtime);		       \
-//	if (EXT4_FITS_IN_INODE(raw_inode, xtime ## _extra))		       \
-//		ext4_decode_extra_time((timespec),			       \
-//				       (raw_inode)->xtime ## _extra);	       \
-//	else								       \
-//		(timespec)->tv_nsec = 0;				       \
-//} while (0)
+
+#define EXT4_EINODE_SET_XTIME(ext4_inode_type, xtime, timespec, raw_inode)		       \
+do {									       \
+	if (EXT4_FITS_IN_INODE(ext4_inode_type, raw_inode, xtime))			       \
+		(raw_inode)->xtime = (timespec)->tv_sec;		       \
+	if (EXT4_FITS_IN_INODE(ext4_inode_type, raw_inode, xtime ## _extra))		       \
+		(raw_inode)->xtime ## _extra =				       \
+				ext4_encode_extra_time(timespec);	       \
+} while (0)
+
+#define EXT4_INODE_GET_XTIME(ext4_inode_type, xtime, timespec, raw_inode)		       \
+do {									       \
+	(timespec)->tv_sec = (signed)((raw_inode)->xtime);		       \
+	if (EXT4_FITS_IN_INODE(ext4_inode_type, raw_inode, xtime ## _extra))		       \
+		ext4_decode_extra_time((timespec),			       \
+				       (raw_inode)->xtime ## _extra);	       \
+	else								       \
+		(timespec)->tv_nsec = 0;				       \
+} while (0)
 //todoe
 
 
@@ -463,19 +456,15 @@ static void get_now(struct timespec *now)
 
 static void increment_version(struct ext2_inode_large *inode)
 {
-	__u64 ver;
+    __u64 ver;
 
-
-//    offsetof(typeof(*inode), i_version_hi);
-
-
-	ver = inode->osd1.linux1.l_i_version;
-	if (EXT4_FITS_IN_INODE2(struct ext2_inode_large, inode, i_version_hi))
-		ver |= (__u64)inode->i_version_hi << 32;
-	ver++;
-	inode->osd1.linux1.l_i_version = ver;
-	if (EXT4_FITS_IN_INODE2(struct ext2_inode_large, inode, i_version_hi))
-		inode->i_version_hi = ver >> 32;
+    ver = inode->osd1.linux1.l_i_version;
+    if (EXT4_FITS_IN_INODE(struct ext2_inode_large, inode, i_version_hi))
+        ver |= (__u64)inode->i_version_hi << 32;
+    ver++;
+    inode->osd1.linux1.l_i_version = ver;
+    if (EXT4_FITS_IN_INODE(struct ext2_inode_large, inode, i_version_hi))
+        inode->i_version_hi = ver >> 32;
 }
 
 static void init_times(struct ext2_inode_large *inode)
@@ -483,11 +472,12 @@ static void init_times(struct ext2_inode_large *inode)
 	struct timespec now;
 
 	get_now(&now);
-	EXT4_INODE_SET_XTIME(i_atime, &now, inode);
-	EXT4_INODE_SET_XTIME(i_ctime, &now, inode);
-	EXT4_INODE_SET_XTIME(i_mtime, &now, inode);
-//	EXT4_EINODE_SET_XTIME(i_crtime, &now, inode); //todoe
-	increment_version(inode);
+
+	EXT4_INODE_SET_XTIME(struct ext2_inode_large, i_atime, &now, inode);
+	EXT4_INODE_SET_XTIME(struct ext2_inode_large, i_ctime, &now, inode);
+	EXT4_INODE_SET_XTIME(struct ext2_inode_large, i_mtime, &now, inode);
+    EXT4_EINODE_SET_XTIME(struct ext2_inode_large, i_crtime, &now, inode);
+    increment_version(inode);
 }
 
 static int update_ctime(ext2_filsys fs, ext2_ino_t ino,
@@ -502,7 +492,7 @@ static int update_ctime(ext2_filsys fs, ext2_ino_t ino,
 	/* If user already has a inode buffer, just update that */
 	if (pinode) {
 		increment_version(pinode);
-		EXT4_INODE_SET_XTIME(i_ctime, &now, pinode);
+		EXT4_INODE_SET_XTIME(struct ext2_inode_large, i_ctime, &now, pinode);
 		return 0;
 	}
 
@@ -514,7 +504,7 @@ static int update_ctime(ext2_filsys fs, ext2_ino_t ino,
 		return translate_error(fs, ino, err);
 
 	increment_version(&inode);
-	EXT4_INODE_SET_XTIME(i_ctime, &now, &inode);
+	EXT4_INODE_SET_XTIME(struct ext2_inode_large, i_ctime, &now, &inode);
 
 	err = ext2fs_write_inode_full(fs, ino, (struct ext2_inode *)&inode,
 				      sizeof(inode));
@@ -539,8 +529,8 @@ static int update_atime(ext2_filsys fs, ext2_ino_t ino)
 		return translate_error(fs, ino, err);
 
 	pinode = &inode;
-	EXT4_INODE_GET_XTIME(i_atime, &atime, pinode);
-	EXT4_INODE_GET_XTIME(i_mtime, &mtime, pinode);
+	EXT4_INODE_GET_XTIME(struct ext2_inode_large, i_atime, &atime, pinode);
+	EXT4_INODE_GET_XTIME(struct ext2_inode_large, i_mtime, &mtime, pinode);
 	get_now(&now);
 	/*
 	 * If atime is newer than mtime and atime hasn't been updated in thirty
@@ -548,7 +538,7 @@ static int update_atime(ext2_filsys fs, ext2_ino_t ino)
 	 */
 	if (atime.tv_sec >= mtime.tv_sec && atime.tv_sec >= now.tv_sec - 30)
 		return 0;
-	EXT4_INODE_SET_XTIME(i_atime, &now, &inode);
+	EXT4_INODE_SET_XTIME(struct ext2_inode_large, i_atime, &now, &inode);
 
 	err = ext2fs_write_inode_full(fs, ino, (struct ext2_inode *)&inode,
 				      sizeof(inode));
@@ -567,8 +557,8 @@ static int update_mtime(ext2_filsys fs, ext2_ino_t ino,
 
 	if (pinode) {
 		get_now(&now);
-		EXT4_INODE_SET_XTIME(i_mtime, &now, pinode);
-		EXT4_INODE_SET_XTIME(i_ctime, &now, pinode);
+		EXT4_INODE_SET_XTIME(struct ext2_inode_large, i_mtime, &now, pinode);
+		EXT4_INODE_SET_XTIME(struct ext2_inode_large, i_ctime, &now, pinode);
 		increment_version(pinode);
 		return 0;
 	}
@@ -580,8 +570,8 @@ static int update_mtime(ext2_filsys fs, ext2_ino_t ino,
 		return translate_error(fs, ino, err);
 
 	get_now(&now);
-	EXT4_INODE_SET_XTIME(i_mtime, &now, &inode);
-	EXT4_INODE_SET_XTIME(i_ctime, &now, &inode);
+	EXT4_INODE_SET_XTIME(struct ext2_inode_large, i_mtime, &now, &inode);
+	EXT4_INODE_SET_XTIME(struct ext2_inode_large, i_ctime, &now, &inode);
 	increment_version(&inode);
 
 	err = ext2fs_write_inode_full(fs, ino, (struct ext2_inode *)&inode,
@@ -804,11 +794,11 @@ static int stat_inode(ext2_filsys fs, ext2_ino_t ino, struct stat *statbuf)
 	statbuf->st_blksize = fs->blocksize;
 	statbuf->st_blocks = ext2fs_get_stat_i_blocks(fs,
 						(struct ext2_inode *)&inode);
-	EXT4_INODE_GET_XTIME(i_atime, &tv, &inode);
+	EXT4_INODE_GET_XTIME(struct ext2_inode_large, i_atime, &tv, &inode);
 	statbuf->st_atime = tv.tv_sec;
-	EXT4_INODE_GET_XTIME(i_mtime, &tv, &inode);
+	EXT4_INODE_GET_XTIME(struct ext2_inode_large, i_mtime, &tv, &inode);
 	statbuf->st_mtime = tv.tv_sec;
-	EXT4_INODE_GET_XTIME(i_ctime, &tv, &inode);
+	EXT4_INODE_GET_XTIME(struct ext2_inode_large, i_ctime, &tv, &inode);
 	statbuf->st_ctime = tv.tv_sec;
 	if (LINUX_S_ISCHR(inode.i_mode) ||
 	    LINUX_S_ISBLK(inode.i_mode)) {
@@ -3098,9 +3088,9 @@ static int op_utimens(const char *path, const struct timespec ctv[2])
 #endif /* UTIME_NOW */
 #ifdef UTIME_OMIT
 	if (tv[0].tv_nsec != UTIME_OMIT)
-		EXT4_INODE_SET_XTIME(i_atime, tv, &inode);
+		EXT4_INODE_SET_XTIME(struct ext2_inode_large, i_atime, tv, &inode);
 	if (tv[1].tv_nsec != UTIME_OMIT)
-		EXT4_INODE_SET_XTIME(i_mtime, tv + 1, &inode);
+		EXT4_INODE_SET_XTIME(struct ext2_inode_large, i_mtime, tv + 1, &inode);
 #endif /* UTIME_OMIT */
 	ret = update_ctime(fs, ino, &inode);
 	if (ret)
