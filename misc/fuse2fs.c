@@ -2186,6 +2186,10 @@ static int op_read(const char *path EXT2FS_ATTR((unused)), char *buf,
 	dbg_printf("%s: ino=%d off=%jd len=%jd\n", __func__, fh->ino, offset,
 		   len);
 	pthread_mutex_lock(&ff->bfl);
+    if (offset < 0) {
+        ret = -EINVAL;
+        goto out;
+    }
 	err = ext2fs_file_open(fs, fh->ino, fh->open_flags, &efp);
 	if (err) {
 		ret = translate_error(fs, fh->ino, err);
@@ -2243,6 +2247,10 @@ static int op_write(const char *path EXT2FS_ATTR((unused)),
 	dbg_printf("%s: ino=%d off=%jd len=%jd\n", __func__, fh->ino, offset,
 		   len);
 	pthread_mutex_lock(&ff->bfl);
+    if (offset < 0) {
+        ret = -EINVAL;
+        goto out;
+    }
 	if (!fs_writeable(fs)) {
 		ret = -EROFS;
 		goto out;
