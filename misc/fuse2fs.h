@@ -3,8 +3,13 @@
 
 #include <jni.h>
 
-int mountExt4(int argc, char *argv[], jobject raio, void **fuseSession);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv[]);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

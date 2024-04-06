@@ -50,6 +50,11 @@ extern int optind;
 #include <limits.h>
 //#include <blkid/blkid.h>
 
+#include <stdexcept>
+#include "exception/ExceptionConverter.h"
+
+extern "C" {
+
 #include "ext2fs/ext2_fs.h"
 #include "ext2fs/ext2fsP.h"
 #include "uuid/uuid.h"
@@ -62,6 +67,8 @@ extern int optind;
 #include "support/quotaio.h"
 #include "mke2fs.h"
 #include "create_inode.h"
+
+}
 
 #define STRIDE_LENGTH 8
 
@@ -447,7 +454,7 @@ static void write_inode_tables(ext2_filsys fs, int lazy_flag, int itable_zeroed)
 					  "blocks in inode table starting at %llu: %s\n"),
 					num, (unsigned long long) blk,
 					error_message(retval));
-				exit(1);
+                ExceptionUtil::convertRcToNativeException(-retval, FM(error_message(retval)));
 			}
 		}
 		if (sync_kludge) {
@@ -570,7 +577,7 @@ static void zap_sector(ext2_filsys fs, int sect, int nsect)
 	int retval;
 	unsigned int *magic;
 
-	buf = calloc(512, nsect);
+	buf = static_cast<char *>(calloc(512, nsect));
 	if (!buf) {
 		printf(_("Out of memory erasing sectors %d-%d\n"),
 		       sect, sect + nsect - 1);
@@ -807,7 +814,7 @@ static void parse_extended_opts(struct ext2_super_block *param,
 	char 	*encoding_flags = NULL;
 
 	len = strlen(opts);
-	buf = malloc(len+1);
+	buf = static_cast<char *>(malloc(len + 1));
 	if (!buf) {
 		fprintf(stderr, "%s",
 			_("Couldn't allocate memory to parse options!\n"));
@@ -1255,7 +1262,7 @@ static errcode_t init_list(struct str_list *sl)
 {
 	sl->num = 0;
 	sl->max = 1;
-	sl->list = malloc((sl->max+1) * sizeof(char *));
+	sl->list = static_cast<char **>(malloc((sl->max + 1) * sizeof(char *)));
 	if (!sl->list)
 		return ENOMEM;
 	sl->list[0] = 0;
@@ -1268,12 +1275,12 @@ static errcode_t push_string(struct str_list *sl, const char *str)
 
 	if (sl->num >= sl->max) {
 		sl->max += 2;
-		new_list = realloc(sl->list, (sl->max+1) * sizeof(char *));
+		new_list = static_cast<char **>(realloc(sl->list, (sl->max + 1) * sizeof(char *)));
 		if (!new_list)
 			return ENOMEM;
 		sl->list = new_list;
 	}
-	sl->list[sl->num] = malloc(strlen(str)+1);
+	sl->list[sl->num] = static_cast<char *>(malloc(strlen(str) + 1));
 	if (sl->list[sl->num] == 0)
 		return ENOMEM;
 	strcpy(sl->list[sl->num], str);
@@ -1403,7 +1410,7 @@ static char **parse_fs_type(const char *fs_type,
 	if (!usage_types)
 		usage_types = size_type;
 
-	parse_str = malloc(strlen(usage_types)+1);
+	parse_str = static_cast<char *>(malloc(strlen(usage_types) + 1));
 	if (!parse_str) {
 		free(profile_type);
 		free(list.list);
@@ -1563,7 +1570,7 @@ out:
 }
 #endif
 
-static int PRS(jobject raio, int argc, char *argv[])
+static void PRS(jobject raio, int argc, char *argv[])
 {
     const char * device_name_descr;
 	int		b, c, flags;
@@ -1613,7 +1620,7 @@ static int PRS(jobject raio, int argc, char *argv[])
 
 	if (oldpath)
 		pathlen += strlen(oldpath);
-	newpath = malloc(pathlen);
+	newpath = static_cast<char *>(malloc(pathlen));
 	if (!newpath) {
 		fprintf(stderr, "%s",
 			_("Couldn't allocate memory for new PATH.\n"));
@@ -1814,8 +1821,8 @@ profile_error:
 			discard = 0;
 			break;
 		case 'l':
-			bad_blocks_filename = realloc(bad_blocks_filename,
-						      strlen(optarg) + 1);
+			bad_blocks_filename = static_cast<char *>(realloc(bad_blocks_filename,
+                                                              strlen(optarg) + 1));
 			if (!bad_blocks_filename) {
 				com_err(program_name, ENOMEM, "%s",
 					_("in malloc for bad_blocks_filename"));
@@ -2072,7 +2079,7 @@ profile_error:
 	} else if (!force && is_device && (fs_blocks_count > dev_size)) {
 		com_err(program_name, 0, "%s",
 			_("Filesystem larger than apparent device size."));
-        return 1;
+        std::runtime_error("Filesystem larger than apparent device size.");
 //		proceed_question(proceed_delay);
 	}
 
@@ -2836,7 +2843,7 @@ static int mke2fs_setup_tdb(const char *name, io_manager *io_ptr)
 	if (!tmp_name)
 		goto errout;
 	dev_name = basename(tmp_name);
-	tdb_file = malloc(strlen(tdb_dir) + 8 + strlen(dev_name) + 7 + 1);
+	tdb_file = static_cast<char *>(malloc(strlen(tdb_dir) + 8 + strlen(dev_name) + 7 + 1));
 	if (!tdb_file) {
 		free(tmp_name);
 		goto errout;
@@ -3081,7 +3088,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 	if (!quiet)
 		flags |= EXT2_FLAG_PRINT_PROGRESS;
 	if (android_sparse_file) {
-		char *android_sparse_params = malloc(strlen(device_name_descr) + 48);
+		char *android_sparse_params = static_cast<char *>(malloc(strlen(device_name_descr) + 48));
 
 		if (!android_sparse_params) {
 			com_err(program_name, ENOMEM, "%s",
