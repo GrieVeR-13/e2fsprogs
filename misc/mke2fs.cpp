@@ -135,6 +135,10 @@ static int sys_page_size = 4096;
 
 static int errors_behavior = 0;
 
+using namespace ExceptionUtil;
+
+static const char *formattingError = "Formatting error";
+
 static void usage(void)
 {
 	fprintf(stderr, _("Usage: %s [-c|-l filename] [-b block-size] "
@@ -150,7 +154,7 @@ static void usage(void)
 	"[-z undo_file]\n"
 	"\t[-jnqvDFSV] device [blocks-count]\n"),
 		program_name);
-	exit(1);
+    convertRcToNativeException(-1, FM(formattingError)); //exit(1);
 }
 
 static int int_log2(unsigned long long arg)
@@ -205,7 +209,7 @@ static int is_before_linux_ver(unsigned int major, unsigned int minor,
 
 	if (uname(&ut)) {
 		perror("uname");
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 	if (linux_version_code < 0)
 		linux_version_code = parse_version_number(ut.release);
@@ -244,14 +248,14 @@ static void read_bb_file(ext2_filsys fs, badblocks_list *bb_list,
 	if (!f) {
 		com_err("read_bad_blocks_file", errno,
 			_("while trying to open %s"), bad_blocks_file);
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 	retval = ext2fs_read_bb_FILE(fs, f, bb_list, invalid_block);
 	fclose (f);
 	if (retval) {
 		com_err("ext2fs_read_bb_FILE", retval, "%s",
 			_("while reading in list of bad blocks from file"));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 }
 
@@ -274,7 +278,7 @@ static void test_disk(ext2_filsys fs, badblocks_list *bb_list)
 	if (!f) {
 		com_err("popen", errno,
 			_("while trying to run '%s'"), buf);
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 	retval = ext2fs_read_bb_FILE(fs, f, bb_list, invalid_block);
 	pclose(f);
@@ -313,7 +317,7 @@ static void handle_bad_blocks(ext2_filsys fs, badblocks_list bb_list)
 				"in order to build a filesystem.\n"),
 				fs->super->s_first_data_block, must_be_good);
 			fputs(_("Aborting....\n"), stderr);
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 	}
 
@@ -454,7 +458,7 @@ static void write_inode_tables(ext2_filsys fs, int lazy_flag, int itable_zeroed)
 					  "blocks in inode table starting at %llu: %s\n"),
 					num, (unsigned long long) blk,
 					error_message(retval));
-                ExceptionUtil::convertRcToNativeException(-retval, FM(error_message(retval)));
+                convertRcToNativeException(-retval, FM(error_message(retval)));
 			}
 		}
 		if (sync_kludge) {
@@ -481,14 +485,14 @@ static void create_root_dir(ext2_filsys fs)
 	if (retval) {
 		com_err("ext2fs_mkdir", retval, "%s",
 			_("while creating root dir"));
-		exit(1);
+		convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 	}
 	if (root_uid != 0 || root_gid != 0) {
 		retval = ext2fs_read_inode(fs, EXT2_ROOT_INO, &inode);
 		if (retval) {
 			com_err("ext2fs_read_inode", retval, "%s",
 				_("while reading root inode"));
-			exit(1);
+			convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 		}
 
 		inode.i_uid = root_uid;
@@ -500,7 +504,7 @@ static void create_root_dir(ext2_filsys fs)
 		if (retval) {
 			com_err("ext2fs_write_inode", retval, "%s",
 				_("while setting root inode ownership"));
-			exit(1);
+			convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 		}
 	}
 }
@@ -518,14 +522,14 @@ static void create_lost_and_found(ext2_filsys fs)
 	if (retval) {
 		com_err("ext2fs_mkdir", retval, "%s",
 			_("while creating /lost+found"));
-		exit(1);
+		convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 	}
 
 	retval = ext2fs_lookup(fs, EXT2_ROOT_INO, name, strlen(name), 0, &ino);
 	if (retval) {
 		com_err("ext2_lookup", retval, "%s",
 			_("while looking up /lost+found"));
-		exit(1);
+		convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 	}
 
 	for (i=1; i < EXT2_NDIR_BLOCKS; i++) {
@@ -538,7 +542,7 @@ static void create_lost_and_found(ext2_filsys fs)
 		if (retval) {
 			com_err("ext2fs_expand_dir", retval, "%s",
 				_("while expanding /lost+found"));
-			exit(1);
+			convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 		}
 	}
 }
@@ -553,7 +557,7 @@ static void create_bad_block_inode(ext2_filsys fs, badblocks_list bb_list)
 	if (retval) {
 		com_err("ext2fs_update_bb_inode", retval, "%s",
 			_("while setting bad block inode"));
-		exit(1);
+		convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 	}
 
 }
@@ -581,7 +585,7 @@ static void zap_sector(ext2_filsys fs, int sect, int nsect)
 	if (!buf) {
 		printf(_("Out of memory erasing sectors %d-%d\n"),
 		       sect, sect + nsect - 1);
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 
 	if (sect == 0) {
@@ -624,14 +628,14 @@ static void create_journal_dev(ext2_filsys fs)
 	if (retval) {
 		com_err("create_journal_dev", retval, "%s",
 			_("while splitting the journal size"));
-		exit(1);
+		convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 	}
 
 	retval = ext2fs_create_journal_superblock2(fs, &jparams, 0, &buf);
 	if (retval) {
 		com_err("create_journal_dev", retval, "%s",
 			_("while initializing journal superblock"));
-		exit(1);
+		convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 	}
 
 	if (journal_flags & EXT2_MKJOURNAL_LAZYINIT)
@@ -653,7 +657,7 @@ static void create_journal_dev(ext2_filsys fs)
 				_("while zeroing journal device "
 				  "(block %llu, count %d)"),
 				(unsigned long long) err_blk, err_count);
-			exit(1);
+			convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 		}
 		blk += c;
 		count -= c;
@@ -669,7 +673,7 @@ write_superblock:
 	if (retval) {
 		com_err("create_journal_dev", retval, "%s",
 			_("while writing journal superblock"));
-		exit(1);
+		convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 	}
 }
 
@@ -818,7 +822,7 @@ static void parse_extended_opts(struct ext2_super_block *param,
 	if (!buf) {
 		fprintf(stderr, "%s",
 			_("Couldn't allocate memory to parse options!\n"));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 	strcpy(buf, opts);
 	for (token = buf; token && *token; token = next) {
@@ -1008,7 +1012,7 @@ static void parse_extended_opts(struct ext2_super_block *param,
 					fprintf(stderr, "%s",
 	_("On-line resizing not supported with revision 0 filesystems\n"));
 					free(buf);
-					exit(1);
+					convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 				}
 				ext2fs_set_feature_resize_inode(param);
 
@@ -1149,7 +1153,7 @@ static void parse_extended_opts(struct ext2_super_block *param,
 			"\tassume_storage_prezeroed=<0 to disable, 1 to enable>\n\n"),
 			badopt ? badopt : "");
 		free(buf);
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 	if (param->s_raid_stride &&
 	    (param->s_raid_stripe_width % param->s_raid_stride) != 0)
@@ -1167,13 +1171,13 @@ static void parse_extended_opts(struct ext2_super_block *param,
 			fprintf(stderr, _("error: Invalid encoding flag: %s\n"),
 				encoding_flags);
 			free(buf);
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 	} else if (encoding_flags) {
 		fprintf(stderr, _("error: An encoding must be explicitly "
 				  "specified when passing encoding-flags\n"));
 		free(buf);
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 
 	free(buf);
@@ -1223,7 +1227,7 @@ static void syntax_err_report(const char *filename, long err, int line_num)
 	fprintf(stderr,
 		_("Syntax error in mke2fs config file (%s, line #%d)\n\t%s\n"),
 		filename, line_num, error_message(err));
-	exit(1);
+	convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 }
 
 //static const char *config_fn[] = { ROOT_SYSCONFDIR "/mke2fs.conf", 0 };
@@ -1236,7 +1240,7 @@ static void edit_feature(const char *str, __u32 *compat_array)
 	if (e2p_edit_feature(str, compat_array, ok_features)) {
 		fprintf(stderr, _("Invalid filesystem option set: %s\n"),
 			str);
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 }
 
@@ -1248,7 +1252,7 @@ static void edit_mntopts(const char *str, __u32 *mntopts)
 	if (e2p_edit_mntopts(str, mntopts, ~0)) {
 		fprintf(stderr, _("Invalid mount option set: %s\n"),
 			str);
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 }
 
@@ -1391,7 +1395,7 @@ static char **parse_fs_type(const char *fs_type,
 		}
 		if (!force) {
 			printf("%s", _("Aborting...\n"));
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 	}
 
@@ -1624,7 +1628,7 @@ static void PRS(jobject raio, int argc, char *argv[])
 	if (!newpath) {
 		fprintf(stderr, "%s",
 			_("Couldn't allocate memory for new PATH.\n"));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 	strcpy(newpath, PATH_SET);
 
@@ -1665,7 +1669,7 @@ static void PRS(jobject raio, int argc, char *argv[])
 profile_error:
 		fprintf(stderr, _("Couldn't init profile successfully"
 				  " (error: %ld).\n"), retval);
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 */
 	setbuf(stdout, NULL);
@@ -1697,7 +1701,7 @@ profile_error:
 			    b > EXT2_MAX_BLOCK_SIZE) {
 				com_err(program_name, 0,
 					_("invalid block size - %s"), optarg);
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			if (blocksize > 4096)
 				fprintf(stderr, _("Warning: blocksize %d not "
@@ -1718,7 +1722,7 @@ profile_error:
 				com_err(program_name, 0,
 					_("invalid cluster size - %s"),
 					optarg);
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			break;
 		case 'd':
@@ -1756,12 +1760,12 @@ profile_error:
 			if (*tmp) {
 				com_err(program_name, 0, "%s",
 				_("Illegal number for blocks per group"));
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			if ((fs_param.s_blocks_per_group % 8) != 0) {
 				com_err(program_name, 0, "%s",
 				_("blocks per group must be multiple of 8"));
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			break;
 		case 'G':
@@ -1769,19 +1773,19 @@ profile_error:
 			if (*tmp) {
 				com_err(program_name, 0, "%s",
 					_("Illegal number for flex_bg size"));
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			if (flex_bg_size < 1 ||
 			    (flex_bg_size & (flex_bg_size-1)) != 0) {
 				com_err(program_name, 0, "%s",
 					_("flex_bg size must be a power of 2"));
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			if (flex_bg_size > MAX_32_NUM) {
 				com_err(program_name, 0,
 				_("flex_bg size (%lu) must be less than"
 				" or equal to 2^31"), flex_bg_size);
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			break;
 		case 'i':
@@ -1792,7 +1796,7 @@ profile_error:
 					_("invalid inode ratio %s (min %d/max %d)"),
 					optarg, EXT2_MIN_BLOCK_SIZE,
 					EXT2_MAX_BLOCK_SIZE * 1024);
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			break;
 		case 'I':
@@ -1800,7 +1804,7 @@ profile_error:
 			if (*tmp) {
 				com_err(program_name, 0,
 					_("invalid inode size - %s"), optarg);
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			break;
 		case 'j':
@@ -1826,7 +1830,7 @@ profile_error:
 			if (!bad_blocks_filename) {
 				com_err(program_name, ENOMEM, "%s",
 					_("in malloc for bad_blocks_filename"));
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			strcpy(bad_blocks_filename, optarg);
 			break;
@@ -1845,7 +1849,7 @@ profile_error:
 				com_err(program_name, 0,
 					_("invalid reserved blocks percent - %s"),
 					optarg);
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			break;
 		case 'M':
@@ -1859,7 +1863,7 @@ profile_error:
 			if (*tmp) {
 				com_err(program_name, 0,
 					_("bad num inodes - %s"), optarg);
-					exit(1);
+					convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			break;
 		case 'o':
@@ -1872,7 +1876,7 @@ profile_error:
 			if (retval) {
 				com_err(program_name, retval,
 				     _("while allocating fs_feature string"));
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			if (fs_features_size)
 				strcat(fs_features, ",");
@@ -1889,12 +1893,12 @@ profile_error:
 			if (*tmp) {
 				com_err(program_name, 0,
 					_("bad revision level - %s"), optarg);
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			if (r_opt > EXT2_MAX_SUPP_REV) {
 				com_err(program_name, EXT2_ET_REV_TOO_HIGH,
 					_("while trying to create revision %d"), r_opt);
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			fs_param.s_rev_level = r_opt;
 			break;
@@ -1908,7 +1912,7 @@ profile_error:
 			if (fs_type) {
 				com_err(program_name, 0, "%s",
 				    _("The -t option may only be used once"));
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			fs_type = strdup(optarg);
 			break;
@@ -1916,7 +1920,7 @@ profile_error:
 			if (usage_types) {
 				com_err(program_name, 0, "%s",
 				    _("The -T option may only be used once"));
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			usage_types = strdup(optarg);
 			break;
@@ -1974,14 +1978,14 @@ profile_error:
 			com_err(program_name, retval,
 				_("while trying to open journal device %s\n"),
 				journal_device);
-			exit(1);
+			convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 		}
 		if ((blocksize < 0) && (jfs->blocksize < (unsigned) (-blocksize))) {
 			com_err(program_name, 0,
 				_("Journal dev blocksize (%d) smaller than "
 				  "minimum blocksize %d\n"), jfs->blocksize,
 				-blocksize);
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 		blocksize = jfs->blocksize;
 		printf(_("Using journal device's blocksize: %d\n"), blocksize);
@@ -1997,7 +2001,7 @@ profile_error:
 			com_err(program_name, 0,
 				_("invalid blocks '%s' on device '%s'"),
 				argv[optind - 1], device_name_descr);
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 	}
 	if (optind < argc)
@@ -2033,7 +2037,7 @@ profile_error:
 			fprintf(stderr,
 				_("The file %s does not exist and no "
 				  "size was specified.\n"), device_name_descr);
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 		fd_raio = ext2fs_open_file(raio,
 				      O_CREAT | O_WRONLY, 0666);
@@ -2049,7 +2053,7 @@ profile_error:
 	if (retval && (retval != EXT2_ET_UNIMPLEMENTED)) {
 		com_err(program_name, retval, "%s",
 			_("while trying to determine filesystem size"));
-		exit(1); //todoe exit chec
+		convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1) //todoe exit chec
 	}
 	if (!fs_blocks_count) {
 		if (retval == EXT2_ET_UNIMPLEMENTED) {
@@ -2057,7 +2061,7 @@ profile_error:
 				_("Couldn't determine device size; you "
 				"must specify\nthe size of the "
 				"filesystem\n"));
-			exit(1);
+			convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 		} else {
 			if (dev_size == 0) {
 				com_err(program_name, 0, "%s",
@@ -2069,7 +2073,7 @@ profile_error:
 				  "and in use.  You may need to reboot\n\t"
 				  "to re-read your partition table.\n"
 				  ));
-				exit(1);
+				convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 			}
 			fs_blocks_count = dev_size;
 			if (sys_page_size > EXT2_BLOCK_SIZE(&fs_param))
@@ -2103,7 +2107,7 @@ profile_error:
 				 argv[0]);
 	if (!fs_types) {
 		fprintf(stderr, "%s", _("Failed to parse fs types list\n"));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 
 	/* Figure out what features should be enabled */
@@ -2170,22 +2174,22 @@ profile_error:
 		if (ext2fs_has_feature_filetype(&fs_param)) {
 			fprintf(stderr, "%s", _("The HURD does not support the "
 						"filetype feature.\n"));
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 		if (ext2fs_has_feature_huge_file(&fs_param)) {
 			fprintf(stderr, "%s", _("The HURD does not support the "
 						"huge_file feature.\n"));
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 		if (ext2fs_has_feature_metadata_csum(&fs_param)) {
 			fprintf(stderr, "%s", _("The HURD does not support the "
 						"metadata_csum feature.\n"));
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 		if (ext2fs_has_feature_ea_inode(&fs_param)) {
 			fprintf(stderr, "%s", _("The HURD does not support the "
 						"ea_inode feature.\n"));
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 	}
 
@@ -2194,13 +2198,13 @@ profile_error:
 	if (retval) {
 		com_err(program_name, retval, "%s",
 			_("while trying to determine hardware sector size"));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 	retval = ext2fs_get_device_phys_sectsize(device_name, &psector_size);
 	if (retval) {
 		com_err(program_name, retval, "%s",
 			_("while trying to determine physical sector size"));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}*/
 
 	tmp = getenv("MKE2FS_DEVICE_SECTSIZE");
@@ -2233,7 +2237,7 @@ profile_error:
 			com_err(program_name, EINVAL, "%s",
 				_("while setting blocksize; too small "
 				  "for device\n"));
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		} else if ((blocksize < psector_size) &&
 			   (psector_size <= sys_page_size)) {	/* Suboptimal */
 			fprintf(stderr, _("Warning: specified blocksize %d is "
@@ -2265,7 +2269,7 @@ profile_error:
 				  "in 32 bits using a blocksize of %d.\n"),
 			program_name, (unsigned long long) fs_blocks_count,
 			device_name_descr, EXT2_BLOCK_SIZE(&fs_param));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 	/*
 	 * Guard against group descriptor count overflowing... Mostly to avoid
@@ -2279,7 +2283,7 @@ profile_error:
 				  "a filesystem using a blocksize of %d.\n"),
 			program_name, (unsigned long long) fs_blocks_count,
 			device_name_descr, EXT2_BLOCK_SIZE(&fs_param));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 
 	ext2fs_blocks_count_set(&fs_param, fs_blocks_count);
@@ -2305,7 +2309,7 @@ profile_error:
 	     fs_param.s_feature_ro_compat)) {
 		fprintf(stderr, "%s", _("Filesystem features not supported "
 					"with revision 0 filesystems\n"));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 
 	if (s_opt > 0) {
@@ -2313,7 +2317,7 @@ profile_error:
 			fprintf(stderr, "%s",
 				_("Sparse superblocks not supported "
 				  "with revision 0 filesystems\n"));
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 		ext2fs_set_feature_sparse_super(&fs_param);
 	} else if (s_opt == 0)
@@ -2323,7 +2327,7 @@ profile_error:
 		if (r_opt == EXT2_GOOD_OLD_REV) {
 			fprintf(stderr, "%s", _("Journals not supported with "
 						"revision 0 filesystems\n"));
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 		ext2fs_set_feature_journal(&fs_param);
 	}
@@ -2336,7 +2340,7 @@ profile_error:
 			com_err(program_name, 0,
 				_("invalid reserved blocks percent - %lf"),
 				reserved_ratio);
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 	}
 
@@ -2353,7 +2357,7 @@ profile_error:
 	    !ext2fs_has_feature_extents(&fs_param)) {
 		printf("%s", _("Extents MUST be enabled for a 64-bit "
 			       "filesystem.  Pass -O extents to rectify.\n"));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 
 	/* Set first meta blockgroup via an environment variable */
@@ -2373,13 +2377,13 @@ profile_error:
 			com_err(program_name, 0, "%s",
 				_("The cluster size may not be "
 				  "smaller than the block size.\n"));
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 	} else if (cluster_size) {
 		com_err(program_name, 0, "%s",
 			_("specifying a cluster size requires the "
 			  "bigalloc feature"));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	} else
 		fs_param.s_log_cluster_size = fs_param.s_log_block_size;
 
@@ -2502,7 +2506,7 @@ profile_error:
 			com_err(program_name, 0,
 				_("Unknown filename encoding from profile: %s"),
 				en);
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 		free(en);
 		fs_param.s_encoding = encoding;
@@ -2512,7 +2516,7 @@ profile_error:
 					&fs_param.s_encoding_flags) < 0) {
 				com_err(program_name, 0,
 			_("Unknown encoding flags from profile: %s"), ef);
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 			free(ef);
 		} else
@@ -2554,7 +2558,7 @@ profile_error:
 				_("%d byte inodes are too small for "
 				  "project quota"),
 				inode_size);
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 		if (inode_size == 0) {
 			inode_size = get_int_from_profile(fs_types,
@@ -2575,7 +2579,7 @@ profile_error:
 		com_err(program_name, 0, "%s",
 			_("Can't support bigalloc feature without "
 			  "extents feature"));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 
 	if (ext2fs_has_feature_meta_bg(&fs_param) &&
@@ -2584,7 +2588,7 @@ profile_error:
 					"features are not compatible.\n"
 					"They can not be both enabled "
 					"simultaneously.\n"));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 
 	if (!quiet && ext2fs_has_feature_bigalloc(&fs_param) &&
@@ -2603,7 +2607,7 @@ profile_error:
 		com_err(program_name, 0, "%s",
 			_("reserved online resize blocks not supported "
 			  "on non-sparse filesystem"));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 
 	if (fs_param.s_blocks_per_group) {
@@ -2611,7 +2615,7 @@ profile_error:
 		    fs_param.s_blocks_per_group > 8 * (unsigned) blocksize) {
 			com_err(program_name, 0, "%s",
 				_("blocks per group count out of range"));
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 	}
 
@@ -2634,7 +2638,7 @@ profile_error:
 			com_err(program_name, 0, "%s",
 				_("Flex_bg feature not enabled, so "
 				  "flex_bg size may not be specified"));
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 		fs_param.s_log_groups_per_flex = int_log2(flex_bg_size);
 	}
@@ -2647,7 +2651,7 @@ profile_error:
 				_("invalid inode size %d (min %d/max %d)"),
 				inode_size, EXT2_GOOD_OLD_INODE_SIZE,
 				blocksize);
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 		fs_param.s_inode_size = inode_size;
 	}
@@ -2662,7 +2666,7 @@ profile_error:
 			_("%d byte inodes are too small for inline data; "
 			  "specify larger size"),
 			fs_param.s_inode_size);
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 
 	/*
@@ -2688,14 +2692,14 @@ _("128-byte inodes cannot handle dates beyond 2038 and are deprecated\n"));
 					_("too many inodes (%llu), raise "
 					  "inode ratio?"),
 					(unsigned long long) n);
-				exit(1);
+				convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 			}
 		}
 	} else if (num_inodes > MAX_32_NUM) {
 		com_err(program_name, 0,
 			_("too many inodes (%llu), specify < 2^32 inodes"),
 			(unsigned long long) num_inodes);
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 	/*
 	 * Calculate number of inodes based on the inode ratio
@@ -2715,7 +2719,7 @@ _("128-byte inodes cannot handle dates beyond 2038 and are deprecated\n"));
 			inode_size ? inode_size : EXT2_GOOD_OLD_INODE_SIZE,
 			fs_param.s_inodes_count,
 			(unsigned long long) ext2fs_blocks_count(&fs_param));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 
 	/*
@@ -2981,14 +2985,14 @@ static int create_quota_inodes(ext2_filsys fs)
 	if (retval) {
 		com_err(program_name, retval,
 			_("while initializing quota context"));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 	quota_compute_usage(qctx);
 	retval = quota_write_inode(qctx, quotatype_bits);
 	if (retval) {
 		com_err(program_name, retval,
 			_("while writing quota inodes"));
-		exit(1);
+		convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 	}
 	quota_release_context(&qctx);
 
@@ -3067,7 +3071,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 	/*if (undo_file != NULL || should_do_undo(raio, device_name_descr)) {
 		retval = mke2fs_setup_tdb(device_name, &io_ptr);
 		if (retval)
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}*/
 
 	/*
@@ -3093,7 +3097,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 		if (!android_sparse_params) {
 			com_err(program_name, ENOMEM, "%s",
 				_("in malloc for android_sparse_params"));
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 		sprintf(android_sparse_params, "(%s):%u:%u",
 			 device_name_descr, fs_param.s_blocks_count,
@@ -3107,7 +3111,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 	if (retval) {
 		com_err(device_name_descr, retval, "%s",
 			_("while setting up superblock"));
-		exit(1);
+		convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 	}
 	fs->progress_ops = &ext2fs_numeric_progress_ops;
 
@@ -3139,7 +3143,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 	    !ext2fs_has_feature_metadata_csum(fs->super)) {
 		printf("%s", _("The metadata_csum_seed feature "
 			       "requires the metadata_csum feature.\n"));
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 
 	/* Calculate journal blocks */
@@ -3212,7 +3216,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 		} else if (uuid_parse(fs_uuid, fs->super->s_uuid) != 0) {
 			com_err(device_name_descr, 0, "could not parse UUID: %s\n",
 				fs_uuid);
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 	} else
 		uuid_generate(fs->super->s_uuid);
@@ -3273,7 +3277,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 	 */
 	if (creator_os && !set_os(fs->super, creator_os)) {
 		com_err (program_name, 0, _("unknown os - %s"), creator_os);
-		exit(1);
+		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
 
 	/*
@@ -3344,7 +3348,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 	if (retval) {
 		com_err(program_name, retval, "%s",
 			_("while trying to allocate filesystem tables"));
-		exit(1);
+		convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 	}
 	if (!quiet)
 		printf("%s", _("done                            \n"));
@@ -3359,7 +3363,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 		if (retval) {
 			com_err("ext2fs_badblocks_list_iterate_begin", retval,
 				"%s", _("while unmarking bad blocks"));
-			exit(1);
+			convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 		}
 		while (ext2fs_badblocks_list_iterate(bb_iter, &blk))
 			ext2fs_unmark_block_bitmap2(fs->block_map, blk);
@@ -3370,7 +3374,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 	if (retval) {
 		com_err(program_name, retval, "%s",
 			_("\n\twhile converting subcluster bitmap"));
-		exit(1);
+		convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 	}
 
 	retval = ext2fs_count_used_clusters(fs, fs->super->s_first_data_block,
@@ -3379,7 +3383,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 	if (retval) {
 		com_err(program_name, retval, "%s",
 			_("while calculating overhead"));
-		exit(1);
+		convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 	}
 
 	if (bb_list) {
@@ -3388,7 +3392,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 		if (retval) {
 			com_err("ext2fs_badblocks_list_iterate_begin", retval,
 				"%s", _("while marking bad blocks as used"));
-			exit(1);
+			convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 		}
 		while (ext2fs_badblocks_list_iterate(bb_iter, &blk))
 			ext2fs_mark_block_bitmap2(fs->block_map, blk);
@@ -3452,7 +3456,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 				com_err("ext2fs_create_resize_inode", retval,
 					"%s",
 				_("while reserving blocks for online resize"));
-				exit(1);
+				convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 			}
 		}
 	}
@@ -3472,7 +3476,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 			com_err(program_name, retval,
 				_("while trying to open journal device %s\n"),
 				journal_device);
-			exit(1);
+			convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 		}
 		if (!quiet) {
 			printf(_("Adding journal to device %s: "),
@@ -3484,7 +3488,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 			com_err (program_name, retval,
 				 _("\n\twhile trying to add journal to device %s"),
 				 journal_device);
-			exit(1);
+			convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 		}
 		if (!quiet)
 			printf("%s", _("done\n"));
@@ -3517,7 +3521,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 		if (retval) {
 			com_err(program_name, retval, "%s",
 				_("\n\twhile trying to create journal"));
-			exit(1);
+			convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 		}
 		if (!quiet)
 			printf("%s", _("done\n"));
@@ -3530,7 +3534,7 @@ no_journal:
 			fprintf(stderr, "%s",
 				_("\nError while enabling multiple "
 				  "mount protection feature."));
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 		if (!quiet)
 			printf(_("Multiple mount protection is enabled "
@@ -3550,7 +3554,7 @@ no_journal:
 		if (!ext2fs_has_feature_journal(&fs_param)) {
 			com_err(program_name, 0, _("cannot set orphan_file "
 				"feature without a journal."));
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 		if (!orphan_file_blocks) {
 			orphan_file_blocks =
@@ -3560,7 +3564,7 @@ no_journal:
 		if (retval) {
 			com_err(program_name, retval,
 				_("while creating orphan file"));
-			exit(1);
+			convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 		}
 	}
 
@@ -3578,7 +3582,7 @@ no_journal:
 		if (retval) {
 			com_err(program_name, retval, "%s",
 				_("while populating file system"));
-			exit(1);
+			convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 		} else if (!quiet)
 			printf("%s", _("done\n"));
 	}
