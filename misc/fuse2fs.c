@@ -2272,7 +2272,7 @@ static int op_write(const char *path EXT2FS_ATTR((unused)),
 		ret = translate_error(fs, fh->ino, err);
 		goto out2;
 	}
-
+//todoe pwrite only make
 	err = ext2fs_file_write(efp, buf, len, &got);
 	if (err) {
 		ret = translate_error(fs, fh->ino, err);
@@ -3954,8 +3954,10 @@ static int __translate_error(ext2_filsys fs, errcode_t err, ext2_ino_t ino,
     int is_err = 0;
 
     /* Translate ext2 error to unix error code */
-    if (err < EXT2_ET_BASE)
-        goto no_translation;
+    if (err < EXT2_ET_BASE) {
+        return -ret;
+//        goto no_translation;
+    }
     switch (err) {
         case EXT2_ET_NO_MEMORY:
         case EXT2_ET_TDB_ERR_OOM:
@@ -4010,6 +4012,10 @@ static int __translate_error(ext2_filsys fs, errcode_t err, ext2_ino_t ino,
             break;
         default:
             is_err = 1;
+            int error = errno;
+            if (error == ECANCELED) {
+                return -error;
+            }
             ret = -EIO;
             break;
     }
@@ -4026,7 +4032,7 @@ static int __translate_error(ext2_filsys fs, errcode_t err, ext2_ino_t ino,
         fprintf(ff->err_fp, "FUSE2FS (%s): %s at %s:%d.\n",
                 /*fs->device_name ? fs->device_name :*/ "???",
                 error_message(err), file, line);
-    fflush(ff->err_fp);
+    fflush(ff->err_fp); //todoe err_fp
 
     /* Make a note in the error log */
     get_now(&now);

@@ -87,6 +87,7 @@
 /*
  * For checking structure magic numbers...
  */
+#define NO_IO_CACHE
 
 #define EXT2_CHECK_MAGIC(struct, code) \
 	  if ((struct)->magic != (code)) return (code)
@@ -1184,7 +1185,7 @@ static errcode_t unix_write_blk64(io_channel channel, unsigned long long block,
 		cache = find_cached_block(data, block, &reuse);
 		if (!cache) {
 			errcode_t err;
-
+//todoe check with protected vera, window?
 			cache = reuse;
 			err = reuse_cache(channel, data, cache, block);
 			if (err)
@@ -1340,7 +1341,8 @@ static errcode_t unix_set_option(io_channel channel, const char *option,
 			return 0;
 		}
 		if (!strcmp(arg, "off")) {
-			retval = flush_cached_blocks(channel, data, 0);
+            abort();
+//			retval = flush_cached_blocks(channel, data, 0);
 			data->flags |= IO_FLAG_NOCACHE;
 			return retval;
 		}
