@@ -245,8 +245,14 @@ static errcode_t raw_read_blk(io_channel channel,
 		actual = uraio_pread_all(data->dev_raio, buf, size, location);
 		if (actual == size)
 			return 0;
-		actual = 0;
-	}
+        if (actual < 0) {
+            retval = errno;
+            actual = 0;
+            goto error_out;
+        }
+        actual = 0;
+
+    }
 #elif HAVE_PREAD
 	/* Try an aligned pread */
 	if ((sizeof(off_t) >= sizeof(ext2_loff_t)) &&
@@ -334,6 +340,7 @@ success_unlock:
 
 error_unlock:
 	mutex_unlock(data, BOUNCE_MTX);
+error_out:
 	if (actual >= 0 && actual < size)
 		memset((char *) buf+actual, 0, size-actual);
 	if (channel->read_error)
@@ -384,6 +391,10 @@ static errcode_t raw_write_blk(io_channel channel,
 		actual = uraio_pwrite(data->dev_raio, buf, size, location);
 		if (actual == size)
 			return 0;
+        if (actual < 0) {
+            retval = errno;
+            goto error_out;
+        }
 	}
 #elif HAVE_PWRITE
 	/* Try an aligned pwrite */
