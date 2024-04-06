@@ -3796,6 +3796,7 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 		fctx->err_fp = fopen(logfile, "a");
 		if (!fctx->err_fp) {
 			perror(logfile);
+            ret = -1;
 			goto out;
 		}
 	} else
@@ -3819,6 +3820,7 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 	if (err) {
 		printf(_("%s: %s.\n"), "fctx->device_name", error_message(err));
 		printf(_("Please run e2fsck -fy %s.\n"), "fctx->device_name");
+        ret = -err;
 		goto out;
 	}
 	fctx->fs = global_fs;
@@ -3856,12 +3858,12 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 			       "fctx->device_name");
 		err = ext2fs_read_inode_bitmap(global_fs); //todoe global_fs
 		if (err) {
-			translate_error(global_fs, 0, err);
+			ret = translate_error(global_fs, 0, err);
 			goto out;
 		}
 		err = ext2fs_read_block_bitmap(global_fs);
 		if (err) {
-			translate_error(global_fs, 0, err);
+			ret = translate_error(global_fs, 0, err);
 			goto out;
 		}
 	}
@@ -3885,6 +3887,7 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 	if (global_fs->super->s_state & EXT2_ERROR_FS) {
 		printf("%s",
 		       _("Errors detected; running e2fsck is required.\n"));
+        ret = -1;
 		goto out;
 	}
 
@@ -3921,7 +3924,7 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 	*fuseSession = cfuse_main(args.argc, args.argv, &fs_ops, fctx);
 //	pthread_mutex_destroy(&fctx->bfl);
 
-	ret = 0; //todoe ret 1 tets
+	ret = 0;
     return ret;
 out:
 	if (global_fs) {
