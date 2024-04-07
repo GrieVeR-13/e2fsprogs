@@ -2339,7 +2339,7 @@ static int op_release(const char *path EXT2FS_ATTR((unused)),
 
 	return ret;
 }
-
+//todoe test ext2 ext3? type flag
 static int op_fsync(const char *path EXT2FS_ATTR((unused)),
 		    int datasync EXT2FS_ATTR((unused)),
 		    struct fuse_file_info *fp)
@@ -2372,13 +2372,14 @@ static int op_statfs(const char *path EXT2FS_ATTR((unused)),
 		     struct statvfs *buf)
 {
 	struct fuse_context *ctxt = fuse_get_context();
-	struct fuse2fs *ff = (struct fuse2fs *)ctxt->private_data;
-	ext2_filsys fs;
-	uint64_t fsid, *f;
+    struct fuse2fs *ff = (struct fuse2fs *)ctxt->private_data;
+    ext2_filsys fs;
+    uint64_t fsid, *f;
 	blk64_t overhead, reserved, free;
 
 	FUSE2FS_CHECK_CONTEXT(ff);
 	fs = ff->fs;
+
 	dbg_printf("%s: path=%s\n", __func__, path);
 	buf->f_bsize = fs->blocksize;
 	buf->f_frsize = 0;
@@ -2412,6 +2413,17 @@ static int op_statfs(const char *path EXT2FS_ATTR((unused)),
 	if (fs->flags & EXT2_FLAG_RW)
 		buf->f_flag |= ST_RDONLY;
 	buf->f_namemax = EXT2_NAME_LEN;
+
+	return 0;
+}
+static ssize_t op_freeSpaceFromEnd()
+{
+	struct fuse_context *ctxt = fuse_get_context();
+	struct fuse2fs *ff = (struct fuse2fs *)ctxt->private_data;
+    FUSE2FS_CHECK_CONTEXT(ff);
+    ext2_filsys fs = ff->fs;
+
+    ext2fs_get_free_space_from_end(fs);
 
 	return 0;
 }
@@ -3627,6 +3639,7 @@ static struct fuse_operations fs_ops = {
 	.read = op_read,
 	.write = op_write,
 	.statfs = op_statfs,
+    .freeSpaceFromEnd = op_freeSpaceFromEnd,
 	.release = op_release,
 	.fsync = op_fsync,
 	.setxattr = op_setxattr,
