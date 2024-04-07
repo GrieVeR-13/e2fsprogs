@@ -710,9 +710,9 @@ static int check_inum_access(ext2_filsys fs, ext2_ino_t ino, mode_t mask)
 	return -EACCES;
 }
 
-int unmountExt4(struct fuse2fs *fctx);
+int unmountExt4(struct fuse2fs *fctx, int isForce);
 
-static int op_destroy(void *p EXT2FS_ATTR((unused)), int isForce)//todoe isForce
+static int op_destroy(void *p EXT2FS_ATTR((unused)), int isForce)
 {
 	struct fuse_context *ctxt = fuse_get_context();
 	struct fuse2fs *ff = (struct fuse2fs *)ctxt->private_data;
@@ -720,25 +720,32 @@ static int op_destroy(void *p EXT2FS_ATTR((unused)), int isForce)//todoe isForce
 	errcode_t err;
 
 	if (ff->magic != FUSE2FS_MAGIC) {
-		translate_error(global_fs, 0, EXT2_ET_BAD_MAGIC);
-		return 0;
+        int tr = translate_error(global_fs, 0, EXT2_ET_BAD_MAGIC);
+        if (!isForce)
+            return tr;
 	}
 	fs = ff->fs;
-	dbg_printf("%s: dev=%s\n", __func__, "fs->device_name");
+	dbg_printf("%s: dev=%s\n", __func__, fs->device_name_descr);
 	if (fs->flags & EXT2_FLAG_RW) {
 		fs->super->s_state |= EXT2_VALID_FS;
 		if (fs->super->s_error_count)
 			fs->super->s_state |= EXT2_ERROR_FS;
 		ext2fs_mark_super_dirty(fs);
 		err = ext2fs_set_gdt_csum(fs);
-		if (err)
-			translate_error(fs, 0, err);
+		if (err) {
+            int tr = translate_error(fs, 0, err);
+            if (!isForce)
+                return tr;
+        }
 
-		err = ext2fs_flush2(fs, 0);
-		if (err)
-			translate_error(fs, 0, err);
+        if (!isForce) {
+		    err = ext2fs_flush2(fs, 0);
+		    if (err) {
+                return translate_error(fs, 0, err);
+            }
+        }
 	}
-    return unmountExt4(ff); //todoe check
+    return unmountExt4(ff, isForce);
 }
 
 static void *op_init(struct fuse_conn_info *conn)
@@ -753,7 +760,7 @@ static void *op_init(struct fuse_conn_info *conn)
 		return NULL;
 	}
 	fs = ff->fs;
-	dbg_printf("%s: dev=%s\n", __func__, "fs->device_name");
+	dbg_printf("%s: dev=%s\n", __func__, fs->device_name_descr);
 #ifdef FUSE_CAP_IOCTL_DIR
 	conn->want |= FUSE_CAP_IOCTL_DIR;
 #endif
@@ -3805,7 +3812,7 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 	/* Will we allow users to allocate every last block? */
 	if (getenv("FUSE2FS_ALLOC_ALL_BLOCKS")) {
 		printf(_("%s: Allowing users to allocate all blocks. "
-		       "This is dangerous!\n"), "fctx->device_name");
+		       "This is dangerous!\n"), fctx->device_name_descr);
 		fctx->alloc_all_blocks = 1;
 	}
 
@@ -3818,8 +3825,8 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 	err = ext2fs_open2(fctx->raio, fctx->device_name_descr, options, flags, 0, 0, unix_io_manager,
 			   &global_fs);
 	if (err) {
-		printf(_("%s: %s.\n"), "fctx->device_name", error_message(err));
-		printf(_("Please run e2fsck -fy %s.\n"), "fctx->device_name");
+		printf(_("%s: %s.\n"), fctx->device_name_descr, error_message(err));
+		printf(_("Please run e2fsck -fy %s.\n"), fctx->device_name_descr);
         ret = -err;
 		goto out;
 	}
@@ -3855,7 +3862,7 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 	if (!fctx->ro) {
 		if (ext2fs_has_feature_journal(global_fs->super))
 			printf(_("%s: Writing to the journal is not supported.\n"),
-			       "fctx->device_name");
+			       fctx->device_name_descr);
 		err = ext2fs_read_inode_bitmap(global_fs); //todoe global_fs
 		if (err) {
 			ret = translate_error(global_fs, 0, err);
@@ -3897,7 +3904,7 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 	/* Set up default fuse parameters */
 	snprintf(extra_args, BUFSIZ, "-okernel_cache,subtype=ext4,use_ino,"
 		 "fsname=%s,attr_timeout=0" FUSE_PLATFORM_OPTS,
-		 "fctx->device_name");
+		 fctx->device_name_descr);
 /*	if (fctx->no_default_opts == 0)
 		fuse_opt_add_arg(&args, extra_args);
 
@@ -3928,7 +3935,7 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
     return ret;
 out:
 	if (global_fs) {
-		err = ext2fs_close(global_fs);
+		err = ext2fs_close(global_fs, 0);
 		if (err)
 			com_err(argv[0], err, "while closing fs");
 		global_fs = NULL;
@@ -3936,10 +3943,10 @@ out:
 	return ret;
 }
 
-int unmountExt4(struct fuse2fs *fctx) {
+int unmountExt4(struct fuse2fs *fctx, int isForce) {
     pthread_mutex_destroy(&fctx->bfl);
     if (global_fs) { //todoe rem global
-        errcode_t err = ext2fs_close(global_fs);
+        errcode_t err = ext2fs_close(global_fs, isForce);
         if (err)
             com_err("fuse ext4", err, "while closing fs");
         global_fs = NULL;

@@ -468,19 +468,19 @@ errcode_t ext2fs_close_free(ext2_filsys *fs_ptr)
 	errcode_t ret;
 	ext2_filsys fs = *fs_ptr;
 
-	ret = ext2fs_close2(fs, 0);
+	ret = ext2fs_close2(fs, 0, 0);
 	if (ret)
 		ext2fs_free(fs);
 	*fs_ptr = NULL;
 	return ret;
 }
 
-errcode_t ext2fs_close(ext2_filsys fs)
+errcode_t ext2fs_close(ext2_filsys fs, int isForce)
 {
-	return ext2fs_close2(fs, 0);
+	return ext2fs_close2(fs, 0, isForce);
 }
 
-errcode_t ext2fs_close2(ext2_filsys fs, int flags)
+errcode_t ext2fs_close2(ext2_filsys fs, int flags, int isForce)
 {
 	errcode_t	retval;
 	int		meta_blks;
@@ -505,7 +505,7 @@ errcode_t ext2fs_close2(ext2_filsys fs, int flags)
 		if ((fs->flags & EXT2_FLAG_DIRTY) == 0)
 			fs->flags |= EXT2_FLAG_SUPER_ONLY | EXT2_FLAG_DIRTY;
 	}
-	if (fs->flags & EXT2_FLAG_DIRTY) {
+	if (fs->flags & EXT2_FLAG_DIRTY && !isForce) {
 		retval = ext2fs_flush2(fs, flags);
 		if (retval)
 			return retval;
