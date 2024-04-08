@@ -87,7 +87,7 @@
 /*
  * For checking structure magic numbers...
  */
-#define NO_IO_CACHE
+//#define NO_IO_CACHE
 
 #define EXT2_CHECK_MAGIC(struct, code) \
 	  if ((struct)->magic != (code)) return (code)
@@ -98,7 +98,7 @@ struct unix_cache {
 	int			access_time;
 	unsigned		dirty:1;
 	unsigned		in_use:1;
-	unsigned		write_err:1;
+    errcode_t		write_err;
 };
 
 #define CACHE_SIZE 8
@@ -526,6 +526,7 @@ static errcode_t alloc_cache(io_channel channel,
 		cache->access_time = 0;
 		cache->dirty = 0;
 		cache->in_use = 0;
+		cache->write_err = 0;
 		if (cache->buf)
 			ext2fs_free_mem(&cache->buf);
 		retval = io_channel_alloc_buf(channel, 0, &cache->buf);
@@ -552,6 +553,7 @@ static void free_cache(struct unix_private_data *data)
 		cache->access_time = 0;
 		cache->dirty = 0;
 		cache->in_use = 0;
+		cache->write_err = 0;
 		if (cache->buf)
 			ext2fs_free_mem(&cache->buf);
 	}
@@ -605,7 +607,7 @@ static errcode_t reuse_cache(io_channel channel,
 		retval = raw_write_blk(channel, data, cache->block, 1,
 				       cache->buf, RAW_WRITE_NO_HANDLER);
 		if (retval) {
-			cache->write_err = 1;
+			cache->write_err = retval;
 			return retval;
 		}
 	}
@@ -1232,6 +1234,8 @@ call_write_handler:
 			ext2fs_free_mem(&err_buf);
 	} else
 		mutex_unlock(data, CACHE_MTX);
+    if (cache->write_err)
+        retval = cache->write_err;
 	return retval;
 #endif /* NO_IO_CACHE */
 }

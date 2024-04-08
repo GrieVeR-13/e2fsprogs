@@ -2231,7 +2231,7 @@ out2:
 	}
 out:
 	pthread_mutex_unlock(&ff->bfl);
-	return got ? (int) got : ret;
+    return ret ? ret : (int) got;
 }
 
 static int op_write(const char *path EXT2FS_ATTR((unused)),
@@ -2308,7 +2308,7 @@ out2:
 
 out:
 	pthread_mutex_unlock(&ff->bfl);
-	return got ? (int) got : ret;
+	return ret ? ret : (int) got;
 }
 
 static int op_release(const char *path EXT2FS_ATTR((unused)),
@@ -4051,11 +4051,11 @@ static int __translate_error(ext2_filsys fs, errcode_t err, ext2_ino_t ino,
 
     if (ino)
         fprintf(ff->err_fp, "FUSE2FS (%s): %s (inode #%d) at %s:%d.\n",
-                /*fs->device_name ? fs->device_name : */"???",
+                fs->device_name_descr ? fs->device_name_descr : "???",
                 error_message(err), ino, file, line);
     else
         fprintf(ff->err_fp, "FUSE2FS (%s): %s at %s:%d.\n",
-                /*fs->device_name ? fs->device_name :*/ "???",
+                fs->device_name_descr ? fs->device_name_descr : "???",
                 error_message(err), file, line);
     fflush(ff->err_fp); //todoe err_fp
 
