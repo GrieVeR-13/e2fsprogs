@@ -28,6 +28,8 @@
 #include "ext2_fs.h"
 #include "ext2fs.h"
 #include "log.h"
+#include "util/jniutil.h"
+#include "util/raio.h"
 
 #ifndef O_BINARY
 #define O_BINARY 0
@@ -671,54 +673,30 @@ errcode_t ext2fs_calculate_summary_stats(ext2_filsys fs, int super_only)
 	return 0;
 }
 
-extern errcode_t ext2fs_get_free_space_from_end(ext2_filsys fs)
-{
-	blk64_t		blk;
-	ext2_ino_t	ino;
-	unsigned int	group = 0;
-	unsigned int	count = 0;
-	int		total_free = 0;
-	int		group_free = 0;
-	int		last_allocated = 0;
-	int		uninit;
+extern off64_t ext2fs_get_free_space_from_end(ext2_filsys fs) {
+    blk64_t blk;
+    unsigned int count = 0;
+    int total_free = 0;
 
-	uninit = 1;
     int firstFreeBlockInLastChain = -1;
-	for (blk = fs->super->s_first_data_block; blk < ext2fs_blocks_count(fs->super); blk++) {
-		if (!ext2fs_fast_test_block_bitmap2(fs->block_map, blk)) {
-			group_free++;
-			total_free++;
+    for (blk = fs->super->s_first_data_block; blk < ext2fs_blocks_count(fs->super); blk++) {
+        if (!ext2fs_fast_test_block_bitmap2(fs->block_map, blk)) {
+            total_free++;
             if (firstFreeBlockInLastChain == -1) {
                 firstFreeBlockInLastChain = blk;
             }
-		} else {
+        } else {
             firstFreeBlockInLastChain = -1;
-			uninit = 0;
-		}
-		count++;
-		if ((count == fs->super->s_blocks_per_group) ||
-		    (blk == ext2fs_blocks_count(fs->super)-1)) {
-			ext2fs_bg_free_blocks_count_set(fs, group,
-							group_free);
-			if (0) {
-				if (uninit && blk !=
-					ext2fs_blocks_count(fs->super) - 1)
-					ext2fs_bg_flags_set(fs, group,
-							EXT2_BG_BLOCK_UNINIT);
-				else
-					ext2fs_bg_flags_clear(fs, group,
-							EXT2_BG_BLOCK_UNINIT);
-			}
-			count = 0;
-			group_free = 0;
-			uninit = 1;
-			group++;
-		}
-	}
-    PP("%d", firstFreeBlockInLastChain);
-	total_free = EXT2FS_C2B(fs, total_free);
-	ext2fs_free_blocks_count_set(fs->super, total_free);
-
-
-	return 0;
+        }
+        count++;
+        if ((count == fs->super->s_blocks_per_group) || (blk == ext2fs_blocks_count(fs->super) - 1)) {
+            count = 0;
+        }
+    }
+    if (firstFreeBlockInLastChain >= 0) {
+        off64_t size = raio_get_size(getEnv(), fs->raio);
+        return size - ((off64_t) firstFreeBlockInLastChain * fs->blocksize);
+    }
+    else
+        return -1;
 }

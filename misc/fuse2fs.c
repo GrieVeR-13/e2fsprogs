@@ -2279,7 +2279,7 @@ static int op_write(const char *path EXT2FS_ATTR((unused)),
 		ret = translate_error(fs, fh->ino, err);
 		goto out2;
 	}
-//todoe pwrite only make
+
 	err = ext2fs_file_write(efp, buf, len, &got);
 	if (err) {
 		ret = translate_error(fs, fh->ino, err);
@@ -2395,12 +2395,13 @@ static int op_statfs(const char *path EXT2FS_ATTR((unused)),
 		reserved = ext2fs_blocks_count(fs->super) / 10;
 	free = ext2fs_free_blocks_count(fs->super);
 
-	buf->f_blocks = ext2fs_blocks_count(fs->super) - overhead;
-	buf->f_bfree = free;
+	buf->f_blocks = ext2fs_blocks_count(fs->super) - overhead - reserved;
+//	buf->f_bfree = free;
 	if (free < reserved)
 		buf->f_bavail = 0;
 	else
 		buf->f_bavail = free - reserved;
+    buf->f_bfree = buf->f_bavail;
 	buf->f_files = fs->super->s_inodes_count;
 	buf->f_ffree = fs->super->s_free_inodes_count;
 	buf->f_favail = fs->super->s_free_inodes_count;
@@ -2422,10 +2423,11 @@ static ssize_t op_freeSpaceFromEnd()
 	struct fuse2fs *ff = (struct fuse2fs *)ctxt->private_data;
     FUSE2FS_CHECK_CONTEXT(ff);
     ext2_filsys fs = ff->fs;
-
-    ext2fs_get_free_space_from_end(fs);
-
-	return 0;
+    off64_t offset = ext2fs_get_free_space_from_end(fs);
+    ssize_t res = (ssize_t)offset;
+    if (res != offset)
+        abort(); //todoe change ssize_t to long long
+	return res;
 }
 
 typedef errcode_t (*xattr_xlate_get)(void **cooked_buf, size_t *cooked_sz,

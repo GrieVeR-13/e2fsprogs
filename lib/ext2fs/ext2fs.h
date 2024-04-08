@@ -1524,7 +1524,7 @@ extern errcode_t ext2fs_initialize(jobject raio, const char *device_name_descr, 
 				   struct ext2_super_block *param,
 				   io_manager manager, ext2_filsys *ret_fs);
 extern errcode_t ext2fs_calculate_summary_stats(ext2_filsys fs, int super_only);
-extern errcode_t ext2fs_get_free_space_from_end(ext2_filsys fs);
+extern off64_t ext2fs_get_free_space_from_end(ext2_filsys fs);
 
 /* icount.c */
 extern void ext2fs_free_icount(ext2_icount_t icount);
