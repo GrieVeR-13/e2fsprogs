@@ -7,6 +7,12 @@
 extern "C" {
 #endif
 
+struct fuse2fs;
+
+int mountExt4(int argc, char *argv[], jobject raio, void **fuseSession);
+
+int fuse2fsSetCacheMode(struct fuse2fs *ff, int mode);
+
 
 #ifdef __cplusplus
 }

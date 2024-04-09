@@ -2417,6 +2417,7 @@ static int op_statfs(const char *path EXT2FS_ATTR((unused)),
 
 	return 0;
 }
+
 static ssize_t op_freeSpaceFromEnd()
 {
 	struct fuse_context *ctxt = fuse_get_context();
@@ -2428,6 +2429,16 @@ static ssize_t op_freeSpaceFromEnd()
     if (res != offset)
         abort(); //todoe change ssize_t to long long
 	return res;
+}
+
+int fuse2fsSetCacheMode(struct fuse2fs *ff, int isEnabled)
+{
+    ext2_filsys fs = ff->fs;
+    errcode_t err = io_channel_set_options(fs->io, isEnabled ? "cache=on" : "cache=off");
+    if (err) {
+        return translate_error(fs, 0, err);
+    }
+    return 0;
 }
 
 typedef errcode_t (*xattr_xlate_get)(void **cooked_buf, size_t *cooked_sz,
