@@ -87,7 +87,6 @@
 /*
  * For checking structure magic numbers...
  */
-//#define NO_IO_CACHE //todoe
 
 #define EXT2_CHECK_MAGIC(struct, code) \
 	  if ((struct)->magic != (code)) return (code)
@@ -109,6 +108,7 @@ struct unix_private_data {
 	int	magic;
 	int	dev_raio;
 	int	flags;
+    int resetCacheOnError;
 	int	align;
 	int	access_time;
 	ext2_loff_t offset;
@@ -601,7 +601,7 @@ static errcode_t flush_cached_blocks(io_channel channel,
                                      struct unix_private_data *data,
                                      int flags);
 
-static errcode_t reset_in_use_cached_blocks(io_channel channel,
+static void reset_in_use_cached_blocks(io_channel channel,
                                      struct unix_private_data *data) {
     struct unix_cache *cache;
     int i;
@@ -623,10 +623,12 @@ static errcode_t reuse_cache(io_channel channel,
 		retval = raw_write_blk(channel, data, cache->block, 1,
 				       cache->buf, RAW_WRITE_NO_HANDLER);
 		if (retval) {
-            cache->in_use = 0;
             cache->write_err = 1;
-            flush_cached_blocks(channel, data, FLUSH_NOLOCK | FLUSH_INVALIDATE);
-            reset_in_use_cached_blocks(channel, data);
+            if (data->resetCacheOnError) {
+                cache->in_use = 0;
+                flush_cached_blocks(channel, data, FLUSH_NOLOCK | FLUSH_INVALIDATE);
+                reset_in_use_cached_blocks(channel, data);
+            }
 			return retval;
 		}
 	}
@@ -664,7 +666,7 @@ static errcode_t flush_cached_blocks(io_channel channel,
 			errors_found = 1;
 			retval2 = retval;
 		} else {
-			cache->dirty = 0; ////todoe может он ее ремонтирует где-то? нужно отключить принудительный выход при кэше на ошибке
+			cache->dirty = 0;
 			cache->write_err = 0;
 			if (flags & FLUSH_INVALIDATE)
 				cache->in_use = 0;
@@ -1160,7 +1162,6 @@ call_write_handler:
 			ext2fs_free_mem(&err_buf);
 	} else
 		mutex_unlock(data, CACHE_MTX);
-        //todoe if cache write_error?
 	return retval;
 #endif /* NO_IO_CACHE */
 }
@@ -1215,7 +1216,6 @@ static errcode_t unix_write_blk64(io_channel channel, unsigned long long block,
 		cache = find_cached_block(data, block, &reuse);
 		if (!cache) {
 			errcode_t err;
-//todoe check with protected vera, window?
 			cache = reuse;
 			err = reuse_cache(channel, data, cache, block);
 			if (err) {
@@ -1373,9 +1373,22 @@ static errcode_t unix_set_option(io_channel channel, const char *option,
 			return 0;
 		}
 		if (!strcmp(arg, "off")) {
-			retval = flush_cached_blocks(channel, data, 0); //todoe abort
+			retval = flush_cached_blocks(channel, data, 0);
 			data->flags |= IO_FLAG_NOCACHE;
 			return retval;
+		}
+		return EXT2_ET_INVALID_ARGUMENT;
+	}
+	if (!strcmp(option, "resetCacheOnError")) {
+		if (!arg)
+			return EXT2_ET_INVALID_ARGUMENT;
+		if (!strcmp(arg, "on")) {
+            data->resetCacheOnError = 1;
+			return 0;
+		}
+		if (!strcmp(arg, "off")) {
+            data->resetCacheOnError = 0;
+			return 0;
 		}
 		return EXT2_ET_INVALID_ARGUMENT;
 	}

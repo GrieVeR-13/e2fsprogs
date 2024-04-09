@@ -2431,10 +2431,10 @@ static ssize_t op_freeSpaceFromEnd()
 	return res;
 }
 
-int fuse2fsSetCacheMode(struct fuse2fs *ff, int isEnabled)
+int fuse2fsResetCacheOnError(struct fuse2fs *ff, int isEnabled)
 {
     ext2_filsys fs = ff->fs;
-    errcode_t err = io_channel_set_options(fs->io, isEnabled ? "cache=on" : "cache=off");
+    errcode_t err = io_channel_set_options(fs->io, isEnabled ? "resetCacheOnError=on" : "resetCacheOnError=off");
     if (err) {
         return translate_error(fs, 0, err);
     }
