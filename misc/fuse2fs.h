@@ -11,7 +11,9 @@ struct fuse2fs;
 
 int mountExt4(int argc, char *argv[], jobject raio, void **fuseSession);
 
-int fuse2fsResetCacheOnError(struct fuse2fs *ff, int resetCacheOnError);
+int fuse2fsSetCacheEnabled(struct fuse2fs *ff, int isEnabled);
+
+int fuse2fsResetCacheOnError(struct fuse2fs *ff, int isEnabled);
 
 
 #ifdef __cplusplus
