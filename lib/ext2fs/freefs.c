@@ -21,16 +21,16 @@
 
 #include "util/jniutil.h"
 
-void ext2fs_free(ext2_filsys fs)
+void ext2fs_free(ext2_filsys fs, int isForce)
 {
 	if (!fs || (fs->magic != EXT2_ET_MAGIC_EXT2FS_FILSYS))
 		return;
 	if (fs->image_io != fs->io) {
 		if (fs->image_io)
-			io_channel_close(fs->image_io);
+			io_channel_close(fs->image_io, isForce);
 	}
 	if (fs->io) {
-		io_channel_close(fs->io);
+		io_channel_close(fs->io, isForce);
 	}
     if (fs->raio) {
         JNIEnv *env = getEnv();

@@ -538,7 +538,7 @@ skip_read_bg:
 	return 0;
 cleanup:
 	if (!(flags & EXT2_FLAG_NOFREE_ON_ERROR)) {
-		ext2fs_free(fs);
+		ext2fs_free(fs, 0);
 		fs = NULL;
 	}
 	*ret_fs = fs;
@@ -581,9 +581,9 @@ errcode_t ext2fs_rewrite_to_io(ext2_filsys fs, io_channel new_io)
 		return 0;
 	if ((fs->image_io != fs->io) &&
 	    fs->image_io)
-		io_channel_close(fs->image_io);
+		io_channel_close(fs->image_io, 0);
 	if (fs->io)
-		io_channel_close(fs->io);
+		io_channel_close(fs->io, 0);
 	fs->io = fs->image_io = new_io;
 	fs->flags |= EXT2_FLAG_DIRTY | EXT2_FLAG_RW |
 		EXT2_FLAG_BB_DIRTY | EXT2_FLAG_IB_DIRTY;

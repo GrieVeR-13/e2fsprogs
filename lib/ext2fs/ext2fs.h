@@ -1056,7 +1056,7 @@ extern errcode_t ext2fs_check_desc(ext2_filsys fs);
 /* closefs.c */
 extern errcode_t ext2fs_close(ext2_filsys fs, int isForce);
 extern errcode_t ext2fs_close2(ext2_filsys fs, int flags, int isForce);
-extern errcode_t ext2fs_close_free(ext2_filsys *fs);
+extern errcode_t ext2fs_close_free(ext2_filsys *fs, int isForce);
 extern errcode_t ext2fs_flush(ext2_filsys fs);
 extern errcode_t ext2fs_flush2(ext2_filsys fs, int flags);
 extern int ext2fs_bg_has_super(ext2_filsys fs, dgrp_t group_block);
@@ -1407,7 +1407,7 @@ extern char *ext2fs_find_block_device(dev_t device);
 extern errcode_t ext2fs_sync_device(int fd, int flushb);
 
 /* freefs.c */
-extern void ext2fs_free(ext2_filsys fs);
+extern void ext2fs_free(ext2_filsys fs, int isForce);
 extern void ext2fs_free_dblist(ext2_dblist dblist);
 extern void ext2fs_badblocks_list_free(ext2_badblocks_list bb);
 extern void ext2fs_u32_list_free(ext2_u32_list bb);

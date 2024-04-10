@@ -78,7 +78,7 @@ struct struct_io_manager {
 	errcode_t magic;
 	const char *name;
 	errcode_t (*open)(jobject raio, const char *device_name_descr, int flags, io_channel *channel);
-	errcode_t (*close)(io_channel channel);
+	errcode_t (*close)(io_channel channel, int isForce);
 	errcode_t (*set_blksize)(io_channel channel, int blksize);
 	errcode_t (*read_blk)(io_channel channel, unsigned long block,
 			      int count, void *data);
@@ -114,7 +114,7 @@ struct struct_io_manager {
 /*
  * Convenience functions....
  */
-#define io_channel_close(c) 		((c)->manager->close((c)))
+#define io_channel_close(c, isForce) 		((c)->manager->close((c), isForce))
 #define io_channel_set_blksize(c,s)	((c)->manager->set_blksize((c),s))
 #define io_channel_read_blk(c,b,n,d)	((c)->manager->read_blk((c),b,n,d))
 #define io_channel_write_blk(c,b,n,d)	((c)->manager->write_blk((c),b,n,d))

@@ -687,7 +687,7 @@ static void undo_atexit(void *p)
 	errcode_t err;
 
 	err = write_undo_indexes(data, 1);
-	io_channel_close(data->undo_file);
+	io_channel_close(data->undo_file, 0);
 
 	com_err(data->tdb_file, err, "while force-closing undo file");
 }
@@ -788,11 +788,11 @@ cleanup:
 	if (undo_fd >= 0)
 		close(undo_fd);
 	if (data && data->undo_file)
-		io_channel_close(data->undo_file);
+		io_channel_close(data->undo_file, 0);
 	if (data && data->tdb_file)
 		free(data->tdb_file);
 	if (data && data->real)
-		io_channel_close(data->real);
+		io_channel_close(data->real, 0);
 	if (data)
 		ext2fs_free_mem(&data);
 	if (io && io->device_name_descr)
@@ -820,11 +820,11 @@ static errcode_t undo_close(io_channel channel)
 	err = write_undo_indexes(data, 1);
 	ext2fs_remove_exit_fn(undo_atexit, data);
 	if (data->real)
-		retval = io_channel_close(data->real);
+		retval = io_channel_close(data->real, 0);
 	if (data->tdb_file)
 		free(data->tdb_file);
 	if (data->undo_file)
-		io_channel_close(data->undo_file);
+		io_channel_close(data->undo_file, 0);
 	ext2fs_free_mem(&data->keyb);
 	if (data->written_block_map)
 		ext2fs_free_generic_bitmap(data->written_block_map);

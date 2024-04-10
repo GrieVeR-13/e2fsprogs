@@ -285,7 +285,7 @@ static void test_disk(ext2_filsys fs, badblocks_list *bb_list)
 	if (retval) {
 		com_err("ext2fs_read_bb_FILE", retval, "%s",
 			_("while processing list of bad blocks from program"));
-		exit(1);
+		exit(1); //todoe exit
 	}
 }
 
@@ -1991,7 +1991,7 @@ profile_error:
 		printf(_("Using journal device's blocksize: %d\n"), blocksize);
 		fs_param.s_log_block_size =
 			int_log2(blocksize >> EXT2_MIN_BLOCK_LOG_SIZE);
-		ext2fs_close_free(&jfs);
+		ext2fs_close_free(&jfs, 0);
 	}
 
 	if (optind < argc) {
@@ -2794,7 +2794,7 @@ static int should_do_undo(jobject raio, const char *device_name_descr)
 		retval = 1;
 
 err_out:
-	io_channel_close(channel);
+	io_channel_close(channel, 0);
 
 open_err_out:
 
@@ -3328,7 +3328,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 	if (ext2fs_has_feature_journal_dev(fs->super)) {
 		create_journal_dev(fs);
 		printf("\n");
-		exit(ext2fs_close_free(&fs) ? 1 : 0);
+		exit(ext2fs_close_free(&fs, 0) ? 1 : 0);
 	}
 
 	if (bad_blocks_filename)
@@ -3492,7 +3492,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 		}
 		if (!quiet)
 			printf("%s", _("done\n"));
-		ext2fs_close_free(&jfs);
+		ext2fs_close_free(&jfs, 0);
 		free(journal_device);
 	} else if ((journal_size) ||
 		   ext2fs_has_feature_journal(&fs_param)) {
@@ -3592,7 +3592,7 @@ no_journal:
 		       "filesystem accounting information: "));
 	checkinterval = fs->super->s_checkinterval;
 	max_mnt_count = fs->super->s_max_mnt_count;
-	retval = ext2fs_close_free(&fs);
+	retval = ext2fs_close_free(&fs, 0);
 	if (retval) {
 		com_err(program_name, retval, "%s",
 			_("while writing out and closing file system"));

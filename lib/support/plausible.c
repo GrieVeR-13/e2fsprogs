@@ -123,7 +123,7 @@ static void print_ext2_info(const char *device)
 		tm = sb->s_wtime;
 		printf(_("\tlast modified on %s"), ctime(&tm));
 	}
-	ext2fs_close_free(&fs);
+	ext2fs_close_free(&fs, 0);
 }
 
 /*

@@ -116,7 +116,7 @@ errcode_t ext2fs_dup_handle(ext2_filsys src, ext2_filsys *dest)
 	*dest = fs;
 	return 0;
 errout:
-	ext2fs_free(fs);
+	ext2fs_free(fs, 0);
 	return retval;
 
 }

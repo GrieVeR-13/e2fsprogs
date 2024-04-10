@@ -463,14 +463,14 @@ errout:
 	return retval;
 }
 
-errcode_t ext2fs_close_free(ext2_filsys *fs_ptr)
+errcode_t ext2fs_close_free(ext2_filsys *fs_ptr, int isForce)
 {
 	errcode_t ret;
 	ext2_filsys fs = *fs_ptr;
 
 	ret = ext2fs_close2(fs, 0, 0);
 	if (ret)
-		ext2fs_free(fs);
+		ext2fs_free(fs, isForce);
 	*fs_ptr = NULL;
 	return ret;
 }
@@ -488,7 +488,7 @@ errcode_t ext2fs_close2(ext2_filsys fs, int flags, int isForce)
 
 	EXT2_CHECK_MAGIC(fs, EXT2_ET_MAGIC_EXT2FS_FILSYS);
 
-	if (fs->write_bitmaps) {
+	if (fs->write_bitmaps && !isForce) {
 		retval = fs->write_bitmaps(fs);
 		if (retval)
 			return retval;
@@ -515,7 +515,7 @@ errcode_t ext2fs_close2(ext2_filsys fs, int flags, int isForce)
 	if (retval)
 		return retval;
 
-	ext2fs_free(fs);
+	ext2fs_free(fs, isForce);
 	return 0;
 }
 

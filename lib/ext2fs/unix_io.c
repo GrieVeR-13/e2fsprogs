@@ -1004,7 +1004,7 @@ static errcode_t unix_open(jobject raio,  const char *device_name_descr, int fla
     return unix_open_channel(device_name_descr, fd, flags, channel, unix_io_manager);
 }
 
-static errcode_t unix_close(io_channel channel)
+static errcode_t unix_close(io_channel channel, int isForce)
 {
 	struct unix_private_data *data;
 	errcode_t	retval = 0;
@@ -1017,7 +1017,9 @@ static errcode_t unix_close(io_channel channel)
 		return 0;
 
 #ifndef NO_IO_CACHE
-	retval = flush_cached_blocks(channel, data, 0);
+    if (!isForce) {
+        retval = flush_cached_blocks(channel, data, 0);
+    }
 #endif
 
 	if (uraio_release(data->dev_raio) < 0)
@@ -1559,7 +1561,7 @@ static struct struct_io_manager struct_unixfd_manager = {
 	.magic		= EXT2_ET_MAGIC_IO_MANAGER,
 	.name		= "Unix fd I/O Manager",
 //	.open		= unixfd_open,
-	.close		= unix_close,
+//	.close		= unix_close,
 	.set_blksize	= unix_set_blksize,
 	.read_blk	= unix_read_blk,
 	.write_blk	= unix_write_blk,

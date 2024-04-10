@@ -575,7 +575,7 @@ ipg_retry:
 	return 0;
 cleanup:
 	free(buf);
-	ext2fs_free(fs);
+	ext2fs_free(fs, 0);
 	return retval;
 }
 
