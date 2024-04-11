@@ -1230,7 +1230,7 @@ static void syntax_err_report(const char *filename, long err, int line_num)
 	convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 }
 
-//static const char *config_fn[] = { ROOT_SYSCONFDIR "/mke2fs.conf", 0 };
+static const char *config_fn[] = { ROOT_SYSCONFDIR "/mke2fs.conf", 0 };
 
 static void edit_feature(const char *str, __u32 *compat_array)
 {
@@ -2472,8 +2472,11 @@ profile_error:
 
 //	if (access("/sys/fs/ext4/features/lazy_itable_init", R_OK) == 0)
 //		lazy_itable_init = 1;
+//
 
-	lazy_itable_init = get_bool_from_profile(fs_types,
+//    Filesystem too small for a journal //todoe
+
+    lazy_itable_init = get_bool_from_profile(fs_types,
 						 "lazy_itable_init",
 						 lazy_itable_init);
 	discard = get_bool_from_profile(fs_types, "discard" , discard);
