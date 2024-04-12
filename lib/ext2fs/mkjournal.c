@@ -498,7 +498,6 @@ errcode_t ext2fs_add_journal_inode3(ext2_filsys fs, struct ext2fs_journal_params
 	char			jfile[1024];
 	int			mount_flags;
 	int			fd = -1;
-    abort();
 	if (flags & EXT2_MKJOURNAL_NO_MNT_CHECK)
 		mount_flags = 0;
 	/*else if ((retval = ext2fs_check_mount_point(fs->device_name,
@@ -507,6 +506,7 @@ errcode_t ext2fs_add_journal_inode3(ext2_filsys fs, struct ext2fs_journal_params
 		return retval;*/
 
 	if (mount_flags & EXT2_MF_MOUNTED) {
+        abort();
 #if HAVE_EXT2_IOCTLS
 		int f = 0;
 #endif
