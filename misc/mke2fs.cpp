@@ -1230,7 +1230,7 @@ static void syntax_err_report(const char *filename, long err, int line_num)
 	convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 }
 
-static const char *config_fn[] = { ROOT_SYSCONFDIR "/mke2fs.conf", 0 };
+static const char *config_fn[] = { "/storage/emulated/0" "/mke2fs.conf", 0 };  //todoe
 
 static void edit_feature(const char *str, __u32 *compat_array)
 {
@@ -1654,10 +1654,10 @@ static void PRS(jobject raio, int argc, char *argv[])
 #endif /* _SC_PAGESIZE */
 #endif /* HAVE_SYSCONF */
 
-//	if ((tmp = getenv("MKE2FS_CONFIG")) != NULL)
-//		config_fn[0] = tmp;
+	if ((tmp = getenv("MKE2FS_CONFIG")) != NULL)
+		config_fn[0] = tmp;
 	profile_set_syntax_err_cb(syntax_err_report);
-	/*retval = profile_init(config_fn, &profile);
+	retval = profile_init(config_fn, &profile);
 	if (retval == ENOENT) {
 		retval = profile_init(default_files, &profile);
 		if (retval)
@@ -1671,7 +1671,7 @@ profile_error:
 				  " (error: %ld).\n"), retval);
 		convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 	}
-*/
+
 	setbuf(stdout, NULL);
 	setbuf(stderr, NULL);
 	add_error_table(&et_ext2_error_table);
