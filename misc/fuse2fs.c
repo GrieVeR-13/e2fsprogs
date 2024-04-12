@@ -637,7 +637,7 @@ static int fs_can_allocate(struct fuse2fs *ff, blk64_t num)
 
 static int fs_writeable(ext2_filsys fs)
 {
-	return (fs->flags & EXT2_FLAG_RW) && (fs->super->s_error_count == 0);
+	return (fs->flags & EXT2_FLAG_RW)/* && (fs->super->s_error_count == 0)*/;
 }
 
 static int check_inum_access(ext2_filsys fs, ext2_ino_t ino, mode_t mask)

@@ -31,6 +31,7 @@
 #include "ext2fs.h"
 #include "e2image.h"
 
+//#define HAVE_MULTI_THREAD //todo add multi tread support
 #ifdef HAVE_PTHREAD
 typedef pthread_mutex_t mutex_t;
 
@@ -520,7 +521,7 @@ static void *read_bitmaps_thread(void *data)
 
 errcode_t ext2fs_rw_bitmaps(ext2_filsys fs, int flags, int num_threads)
 {
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_MULTI_THREAD
 	pthread_attr_t	attr;
 	pthread_t *thread_ids = NULL;
 	struct read_bitmaps_thread_info *thread_infos = NULL;
@@ -542,7 +543,7 @@ errcode_t ext2fs_rw_bitmaps(ext2_filsys fs, int flags, int num_threads)
 		return write_bitmaps(fs, flags & EXT2FS_BITMAPS_INODE,
 				     flags & EXT2FS_BITMAPS_BLOCK);
 
-#ifdef HAVE_PTHREAD
+#ifdef HAVE_MULTI_THREAD
 	if (((fs->io->flags & CHANNEL_FLAGS_THREADS) == 0) ||
 	    (num_threads == 1) || (fs->flags & EXT2_FLAG_IMAGE_FILE))
 		goto fallback;

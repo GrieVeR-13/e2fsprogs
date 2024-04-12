@@ -3171,7 +3171,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 
 		lazy_itable_init = 1;
 		itable_zeroed = 1;
-//		zero_hugefile = 0;
+//		zero_hugefile = 0; //todoe zero_hugefile
 		journal_flags |= EXT2_MKJOURNAL_LAZYINIT;
 	}
 
