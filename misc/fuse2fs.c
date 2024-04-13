@@ -428,8 +428,6 @@ do {									       \
 	else								       \
 		(timespec)->tv_nsec = 0;				       \
 } while (0)
-//todoe
-
 
 #define EXT4_EINODE_GET_XTIME(xtime, timespec, raw_inode)		       \
 do {									       \
