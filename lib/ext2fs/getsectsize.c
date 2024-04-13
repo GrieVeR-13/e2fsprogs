@@ -85,7 +85,7 @@ errcode_t ext2fs_get_device_sectsize(const char *file, int *sectsize)
  * Return desired alignment for direct I/O
  */
 int ext2fs_get_dio_alignment(int fd_raio)
-{ //todoe check
+{
 	int align = 0;
 
 #ifdef BLKSSZGET

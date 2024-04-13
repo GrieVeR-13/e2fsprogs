@@ -66,7 +66,7 @@ static struct struct_io_manager struct_inode_manager = {
 	.magic		= EXT2_ET_MAGIC_IO_MANAGER,
 	.name		= "Inode I/O Manager",
 	.open		= inode_open,
-	.close		= inode_close,
+//	.close		= inode_close,
 	.set_blksize	= inode_set_blksize,
 	.read_blk	= inode_read_blk,
 	.write_blk	= inode_write_blk,
@@ -114,7 +114,7 @@ errcode_t ext2fs_inode_io_intern(ext2_filsys fs, ext2_ino_t ino,
 
 static errcode_t inode_open(jobject raio, const char *device_name_descr, int flags, io_channel *channel)
 {
-    abort();
+    abort(); //device_name_descr is not description here
 	io_channel	io = NULL;
 	struct inode_private_data *prev, *data = NULL;
 	errcode_t	retval;
@@ -125,7 +125,7 @@ static errcode_t inode_open(jobject raio, const char *device_name_descr, int fla
 
 	for (data = top_intern, prev = NULL; data;
 	     prev = data, data = data->next)
-		if (strcmp(device_name_descr, data->name) == 0) //todoe not device_name_descr
+		if (strcmp(device_name_descr, data->name) == 0)
 			break;
 	if (!data)
 		return ENOENT;
@@ -141,11 +141,11 @@ static errcode_t inode_open(jobject raio, const char *device_name_descr, int fla
 
 	io->magic = EXT2_ET_MAGIC_IO_CHANNEL;
 	io->manager = inode_io_manager;
-	retval = ext2fs_get_mem(strlen(device_name_descr)+1, &io->device_name_descr); //todoe
+	retval = ext2fs_get_mem(strlen(device_name_descr)+1, &io->device_name_descr);
 	if (retval)
 		goto cleanup;
 
-	strcpy(io->device_name_descr, device_name_descr); //todoe
+	strcpy(io->device_name_descr, device_name_descr);
 	io->private_data = data;
 	io->block_size = 1024;
 	io->read_error = 0;

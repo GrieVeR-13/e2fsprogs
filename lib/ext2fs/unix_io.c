@@ -911,7 +911,7 @@ static errcode_t unix_open_channel(const char *device_name_descr, int fd_raio,
 		}*/
 	}
 #endif
-    //todoe git config add
+
 #ifdef HAVE_PTHREAD
 	if (flags & IO_FLAG_THREADS) {
 		io->flags |= CHANNEL_FLAGS_THREADS;

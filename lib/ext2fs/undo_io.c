@@ -1095,8 +1095,8 @@ static errcode_t undo_get_stats(io_channel channel, io_stats *stats)
 static struct struct_io_manager struct_undo_manager = {
 	.magic		= EXT2_ET_MAGIC_IO_MANAGER,
 	.name		= "Undo I/O Manager",
-//	.open		= undo_open,//todoe
-	.close		= undo_close,
+//	.open		= undo_open,
+//	.close		= undo_close,
 	.set_blksize	= undo_set_blksize,
 	.read_blk	= undo_read_blk,
 	.write_blk	= undo_write_blk,

@@ -2804,7 +2804,7 @@ open_err_out:
 
 static int mke2fs_setup_tdb(const char *name, io_manager *io_ptr)
 {
-    abort();
+    abort(); //not used
 	errcode_t retval = ENOMEM;
 	char *tdb_dir = NULL, *tdb_file = NULL;
 	char *dev_name, *tmp_name;

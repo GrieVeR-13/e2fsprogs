@@ -64,6 +64,7 @@
 #endif
 
 #include "CFuseSession.h"
+#include "log.h"
 #include <jni.h>
 
 //static ext2_filsys global_fs; /* Try not to use this directly */
@@ -3868,8 +3869,10 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 
 	ret = 3;
 
-	/*if (ext2fs_has_feature_journal_needs_recovery(global_fs->super)) {
-		if (fctx->norecovery) {
+	if (ext2fs_has_feature_journal_needs_recovery(temp_fs->super)) {
+        LOGE("Unsupported ext2fs_has_feature_journal_needs_recovery");
+        return -1;
+		/*if (fctx->norecovery) {
 			printf(_("%s: mounting read-only without "
 				 "recovering journal\n"),
 			       fctx->device_name_descr);
@@ -3889,8 +3892,8 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 			printf("%s", _("Journal needs recovery; running "
 			       "`e2fsck -E journal_only' is required.\n"));
 			goto out;
-		}
-	}*/
+		}*/
+	}
 
 	if (!fctx->ro) {
 		if (ext2fs_has_feature_journal(temp_fs->super))
