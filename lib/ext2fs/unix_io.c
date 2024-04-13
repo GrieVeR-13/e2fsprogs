@@ -97,7 +97,7 @@ struct unix_cache {
 	int			access_time;
 	unsigned		dirty:1;
 	unsigned		in_use:1;
-    errcode_t		write_err;
+	unsigned		write_err:1;
 };
 
 #define CACHE_SIZE 8
@@ -600,7 +600,7 @@ static struct unix_cache *find_cached_block(struct unix_private_data *data,
 static errcode_t flush_cached_blocks(io_channel channel,
                                      struct unix_private_data *data,
                                      int flags);
-
+//todo rem
 static void reset_in_use_cached_blocks(io_channel channel,
                                      struct unix_private_data *data) {
     struct unix_cache *cache;
@@ -911,7 +911,6 @@ static errcode_t unix_open_channel(const char *device_name_descr, int fd_raio,
 		}*/
 	}
 #endif
-
 #ifdef HAVE_PTHREAD
 	if (flags & IO_FLAG_THREADS) {
 		io->flags |= CHANNEL_FLAGS_THREADS;
@@ -1218,6 +1217,7 @@ static errcode_t unix_write_blk64(io_channel channel, unsigned long long block,
 		cache = find_cached_block(data, block, &reuse);
 		if (!cache) {
 			errcode_t err;
+
 			cache = reuse;
 			err = reuse_cache(channel, data, cache, block);
 			if (err) {

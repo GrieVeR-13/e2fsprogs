@@ -66,7 +66,7 @@ errcode_t ext2fs_mmp_read(ext2_filsys fs, blk64_t mmp_blk, void *buf)
 		 * alignment when the device of the host file system has sector
 		 * size larger than blocksize of the fs we're working with.
 		 */
-        abort();
+        abort();//not supported
 //		if (stat(fs->device_name, &st) == 0 &&
 //		    S_ISREG(st.st_mode))
 //			flags &= ~O_DIRECT;
@@ -217,7 +217,7 @@ static errcode_t ext2fs_mmp_reset(ext2_filsys fs)
 #else
 	mmp_s->mmp_nodename[0] = '\0';
 #endif
-    abort();
+    abort(); //not supported
 	strncpy((char *) mmp_s->mmp_bdevname, fs->device_name_descr,
 		sizeof(mmp_s->mmp_bdevname));
 
@@ -360,7 +360,7 @@ clean_seq:
 #else
 	strcpy((char *) mmp_s->mmp_nodename, "unknown host");
 #endif
-    abort();
+    abort(); //not supported
 	strncpy((char *) mmp_s->mmp_bdevname, fs->device_name_descr,
 		sizeof(mmp_s->mmp_bdevname));
 

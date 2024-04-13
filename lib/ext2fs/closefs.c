@@ -468,7 +468,7 @@ errcode_t ext2fs_close_free(ext2_filsys *fs_ptr, int isForce)
 	errcode_t ret;
 	ext2_filsys fs = *fs_ptr;
 
-	ret = ext2fs_close2(fs, 0, 0);
+	ret = ext2fs_close2(fs, 0, isForce);
 	if (ret)
 		ext2fs_free(fs, isForce);
 	*fs_ptr = NULL;

@@ -363,7 +363,7 @@ static blk64_t round_up_align(blk64_t b, unsigned long align,
 	return b;
 }
 
-errcode_t mk_hugefiles(ext2_filsys fs/*, const char *device_name*/)
+errcode_t mk_hugefiles(ext2_filsys fs, const char *device_name_descr)
 {
 	unsigned long	i;
 	ext2_ino_t	dir;
@@ -394,7 +394,7 @@ errcode_t mk_hugefiles(ext2_filsys fs/*, const char *device_name*/)
 	free(t);
 	if (get_bool_from_profile(fs_types, "hugefiles_align_disk", 0)) {
         abort();
-//		part_offset = get_partition_start(device_name)
+//		part_offset = get_partition_start(device_name_descr)
 			(fs->blocksize / 512);
 		if (part_offset % EXT2FS_CLUSTER_RATIO(fs)) {
 			fprintf(stderr,

@@ -79,7 +79,6 @@
 # define dbg_printf(f, a...)
 #endif
 
-
 #if FUSE_VERSION >= FUSE_MAKE_VERSION(2, 8)
 # ifdef _IOR
 #  ifdef _IOW
@@ -102,6 +101,7 @@
 #endif
 
 errcode_t ext2fs_run_ext3_journal(ext2_filsys *fs);
+
 #ifdef CONFIG_JBD_DEBUG		/* Enabled by configure --enable-jbd-debug */
 int journal_enable_debug = -1;
 #endif
@@ -402,6 +402,7 @@ static inline void ext4_decode_extra_time(struct timespec *time, __u32 extra)
 	}
 	time->tv_nsec = ((extra) & EXT4_NSEC_MASK) >> EXT4_EPOCH_BITS;
 }
+
 #define EXT4_INODE_SET_XTIME(ext4_inode_type, xtime, timespec, raw_inode)		       \
 do {									       \
 	(raw_inode)->xtime = (timespec)->tv_sec;			       \
@@ -409,7 +410,6 @@ do {									       \
 		(raw_inode)->xtime ## _extra =				       \
 				ext4_encode_extra_time(timespec);	       \
 } while (0)
-
 
 #define EXT4_EINODE_SET_XTIME(ext4_inode_type, xtime, timespec, raw_inode)		       \
 do {									       \
@@ -455,7 +455,7 @@ static void get_now(struct timespec *now)
 
 static void increment_version(struct ext2_inode_large *inode)
 {
-    __u64 ver;
+	__u64 ver;
 
     ver = inode->osd1.linux1.l_i_version;
     if (EXT4_FITS_IN_INODE(struct ext2_inode_large, inode, i_version_hi))
@@ -471,7 +471,6 @@ static void init_times(struct ext2_inode_large *inode)
 	struct timespec now;
 
 	get_now(&now);
-
 	EXT4_INODE_SET_XTIME(struct ext2_inode_large, i_atime, &now, inode);
 	EXT4_INODE_SET_XTIME(struct ext2_inode_large, i_ctime, &now, inode);
 	EXT4_INODE_SET_XTIME(struct ext2_inode_large, i_mtime, &now, inode);
@@ -2188,7 +2187,7 @@ static int op_read(const char *path EXT2FS_ATTR((unused)), char *buf,
 
 	FUSE2FS_CHECK_CONTEXT(ff);
 	fs = ff->fs;
-    FUSE2FS_CHECK_MAGIC(fs, fh, FUSE2FS_FILE_MAGIC);
+	FUSE2FS_CHECK_MAGIC(fs, fh, FUSE2FS_FILE_MAGIC);
 	dbg_printf("%s: ino=%d off=%jd len=%jd\n", __func__, fh->ino, offset,
 		   len);
 	pthread_mutex_lock(&ff->bfl);
@@ -2371,14 +2370,13 @@ static int op_statfs(const char *path EXT2FS_ATTR((unused)),
 		     struct statvfs *buf)
 {
 	struct fuse_context *ctxt = fuse_get_context();
-    struct fuse2fs *ff = (struct fuse2fs *)ctxt->private_data;
-    ext2_filsys fs;
-    uint64_t fsid, *f;
+	struct fuse2fs *ff = (struct fuse2fs *)ctxt->private_data;
+	ext2_filsys fs;
+	uint64_t fsid, *f;
 	blk64_t overhead, reserved, free;
 
 	FUSE2FS_CHECK_CONTEXT(ff);
 	fs = ff->fs;
-
 	dbg_printf("%s: path=%s\n", __func__, path);
 	buf->f_bsize = fs->blocksize;
 	buf->f_frsize = 0;
@@ -3747,10 +3745,10 @@ static int fuse2fs_opt_proc(void *data, const char *arg,
 
 	switch (key) {
 	case FUSE_OPT_KEY_NONOPT:
-/*		if (!ff->device_name) {
-			ff->device_name = strdup(arg);
+		if (!ff->device_name_descr) {
+			ff->device_name_descr = strdup(arg);
 			return 0;
-		}*/
+		}
 		return 1;
 	case FUSE2FS_HELP:
 	case FUSE2FS_HELPFULL:
@@ -3992,116 +3990,112 @@ int unmountExt4(struct fuse2fs *fctx, int isForce) {
 }
 
 static int __translate_error(ext2_filsys fs, errcode_t err, ext2_ino_t ino,
-                             const char *file, int line)
+			     const char *file, int line)
 {
-    struct timespec now;
-    int ret = err;
-    struct fuse2fs *ff = fs->priv_data;
-    int is_err = 0;
+	struct timespec now;
+	int ret = err;
+	struct fuse2fs *ff = fs->priv_data;
+	int is_err = 0;
 
-    /* Translate ext2 error to unix error code */
+	/* Translate ext2 error to unix error code */
     if (err < EXT2_ET_BASE) {
         return -ret;
 //        goto no_translation;
     }
-    switch (err) {
-        case EXT2_ET_NO_MEMORY:
-        case EXT2_ET_TDB_ERR_OOM:
-            ret = -ENOMEM;
-            break;
-        case EXT2_ET_INVALID_ARGUMENT:
-        case EXT2_ET_LLSEEK_FAILED:
-            ret = -EINVAL;
-            break;
-        case EXT2_ET_NO_DIRECTORY:
-            ret = -ENOTDIR;
-            break;
-        case EXT2_ET_FILE_NOT_FOUND:
-            ret = -ENOENT;
-            break;
-        case EXT2_ET_DIR_NO_SPACE:
-            is_err = 1;
-            /* fallthrough */
-        case EXT2_ET_TOOSMALL:
-        case EXT2_ET_BLOCK_ALLOC_FAIL:
-        case EXT2_ET_INODE_ALLOC_FAIL:
-        case EXT2_ET_EA_NO_SPACE:
-            ret = -ENOSPC;
-            break;
-        case EXT2_ET_SYMLINK_LOOP:
-            ret = -EMLINK;
-            break;
-        case EXT2_ET_FILE_TOO_BIG:
-            ret = -EFBIG;
-            break;
-        case EXT2_ET_TDB_ERR_EXISTS:
-        case EXT2_ET_FILE_EXISTS:
-            ret = -EEXIST;
-            break;
-        case EXT2_ET_MMP_FAILED:
-        case EXT2_ET_MMP_FSCK_ON:
-            ret = -EBUSY;
-            break;
-        case EXT2_ET_EA_KEY_NOT_FOUND:
+	switch (err) {
+	case EXT2_ET_NO_MEMORY:
+	case EXT2_ET_TDB_ERR_OOM:
+		ret = -ENOMEM;
+		break;
+	case EXT2_ET_INVALID_ARGUMENT:
+	case EXT2_ET_LLSEEK_FAILED:
+		ret = -EINVAL;
+		break;
+	case EXT2_ET_NO_DIRECTORY:
+		ret = -ENOTDIR;
+		break;
+	case EXT2_ET_FILE_NOT_FOUND:
+		ret = -ENOENT;
+		break;
+	case EXT2_ET_DIR_NO_SPACE:
+		is_err = 1;
+		/* fallthrough */
+	case EXT2_ET_TOOSMALL:
+	case EXT2_ET_BLOCK_ALLOC_FAIL:
+	case EXT2_ET_INODE_ALLOC_FAIL:
+	case EXT2_ET_EA_NO_SPACE:
+		ret = -ENOSPC;
+		break;
+	case EXT2_ET_SYMLINK_LOOP:
+		ret = -EMLINK;
+		break;
+	case EXT2_ET_FILE_TOO_BIG:
+		ret = -EFBIG;
+		break;
+	case EXT2_ET_TDB_ERR_EXISTS:
+	case EXT2_ET_FILE_EXISTS:
+		ret = -EEXIST;
+		break;
+	case EXT2_ET_MMP_FAILED:
+	case EXT2_ET_MMP_FSCK_ON:
+		ret = -EBUSY;
+		break;
+	case EXT2_ET_EA_KEY_NOT_FOUND:
 #ifdef ENODATA
-            ret = -ENODATA;
+		ret = -ENODATA;
 #else
-            ret = -ENOENT;
+		ret = -ENOENT;
 #endif
-            break;
-            /* Sometimes fuse returns a garbage file handle pointer to us... */
-        case EXT2_ET_MAGIC_EXT2_FILE:
-            ret = -EFAULT;
-            break;
-        case EXT2_ET_UNIMPLEMENTED:
-            ret = -EOPNOTSUPP;
-            break;
-        default:
-            is_err = 1;
-            int error = errno;
-            if (error == ECANCELED) {
-                return -error;
-            }
-            ret = -EIO;
-            break;
-    }
+		break;
+	/* Sometimes fuse returns a garbage file handle pointer to us... */
+	case EXT2_ET_MAGIC_EXT2_FILE:
+		ret = -EFAULT;
+		break;
+	case EXT2_ET_UNIMPLEMENTED:
+		ret = -EOPNOTSUPP;
+		break;
+	default:
+		is_err = 1;
+		ret = -EIO;
+		break;
+	}
 
-    no_translation:
-    if (!is_err)
-        return ret;
+no_translation:
+	if (!is_err)
+		return ret;
 
-    if (ino)
-        fprintf(ff->err_fp, "FUSE2FS (%s): %s (inode #%d) at %s:%d.\n",
-                fs->device_name_descr ? fs->device_name_descr : "???",
-                error_message(err), ino, file, line);
-    else
-        fprintf(ff->err_fp, "FUSE2FS (%s): %s at %s:%d.\n",
-                fs->device_name_descr ? fs->device_name_descr : "???",
-                error_message(err), file, line);
-    fflush(ff->err_fp);
+	if (ino)
+		fprintf(ff->err_fp, "FUSE2FS (%s): %s (inode #%d) at %s:%d.\n",
+			fs->device_name ? fs->device_name : "???",
+			error_message(err), ino, file, line);
+	else
+		fprintf(ff->err_fp, "FUSE2FS (%s): %s at %s:%d.\n",
+			fs->device_name ? fs->device_name : "???",
+			error_message(err), file, line);
+	fflush(ff->err_fp);
 
-    /* Make a note in the error log */
-    get_now(&now);
-    fs->super->s_last_error_time = now.tv_sec;
-    fs->super->s_last_error_ino = ino;
-    fs->super->s_last_error_line = line;
-    fs->super->s_last_error_block = err; /* Yeah... */
-    strncpy((char *)fs->super->s_last_error_func, file,
-            sizeof(fs->super->s_last_error_func));
-    if (fs->super->s_first_error_time == 0) {
-        fs->super->s_first_error_time = now.tv_sec;
-        fs->super->s_first_error_ino = ino;
-        fs->super->s_first_error_line = line;
-        fs->super->s_first_error_block = err;
-        strncpy((char *)fs->super->s_first_error_func, file,
-                sizeof(fs->super->s_first_error_func));
-    }
+	/* Make a note in the error log */
+	get_now(&now);
+	fs->super->s_last_error_time = now.tv_sec;
+	fs->super->s_last_error_ino = ino;
+	fs->super->s_last_error_line = line;
+	fs->super->s_last_error_block = err; /* Yeah... */
+	strncpy((char *)fs->super->s_last_error_func, file,
+		sizeof(fs->super->s_last_error_func));
+	if (fs->super->s_first_error_time == 0) {
+		fs->super->s_first_error_time = now.tv_sec;
+		fs->super->s_first_error_ino = ino;
+		fs->super->s_first_error_line = line;
+		fs->super->s_first_error_block = err;
+		strncpy((char *)fs->super->s_first_error_func, file,
+			sizeof(fs->super->s_first_error_func));
+	}
 
-    fs->super->s_error_count++;
-    ext2fs_mark_super_dirty(fs);
-    ext2fs_flush(fs);
-    if (ff->panic_on_error)
-        abort();
+	fs->super->s_error_count++;
+	ext2fs_mark_super_dirty(fs);
+	ext2fs_flush(fs);
+	if (ff->panic_on_error)
+		abort();
 
-    return ret;
+	return ret;
 }

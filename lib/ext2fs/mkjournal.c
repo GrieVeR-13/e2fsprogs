@@ -432,7 +432,7 @@ errcode_t ext2fs_add_journal_device(ext2_filsys fs, ext2_filsys journal_dev)
 	__u32		i, nr_users;
 
 	/* Make sure the device exists and is a block device */
-    abort();
+    abort(); //not supported
 //	if (stat(journal_dev->device_name, &st) < 0)
 //		return errno;
 
@@ -498,6 +498,7 @@ errcode_t ext2fs_add_journal_inode3(ext2_filsys fs, struct ext2fs_journal_params
 	char			jfile[1024];
 	int			mount_flags;
 	int			fd = -1;
+
 	if (flags & EXT2_MKJOURNAL_NO_MNT_CHECK)
 		mount_flags = 0;
 	/*else if ((retval = ext2fs_check_mount_point(fs->device_name,

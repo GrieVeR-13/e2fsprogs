@@ -142,8 +142,8 @@ static int valid_offset (int fd_raio, ext2_loff_t offset)
     abort();
 	if (ext2fs_llseek (fd_raio, offset, 0) < 0)
 		return 0;
-//	if (read (fd, &ch, 1) < 1)
-//		return 0;
+/*	if (read (fd, &ch, 1) < 1)
+		return 0;*/
 	return 1;
 }
 

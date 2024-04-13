@@ -1230,7 +1230,7 @@ static void syntax_err_report(const char *filename, long err, int line_num)
 	convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 }
 
-//static const char *config_fn[] = { "" "/mke2fs.conf", 0 };
+//static const char *config_fn[] = { ROOT_SYSCONFDIR "/mke2fs.conf", 0 };
 
 static void edit_feature(const char *str, __u32 *compat_array)
 {
@@ -2030,8 +2030,9 @@ profile_error:
 		retval = ext2fs_get_device_size2(raio,
 						 EXT2_BLOCK_SIZE(&fs_param),
 						 &dev_size);
-    /*
+
 	if (retval == ENOENT) {
+        abort();
 		int fd_raio;
 
 		if (!explicit_fssize) {
@@ -2050,7 +2051,7 @@ profile_error:
             ext2fs_close_file(fd_raio);
 			printf(_("Creating regular file %s\n"), device_name_descr);
 		}
-	}*/
+	}
 	if (retval && (retval != EXT2_ET_UNIMPLEMENTED)) {
 		com_err(program_name, retval, "%s",
 			_("while trying to determine filesystem size"));
@@ -2738,7 +2739,7 @@ _("128-byte inodes cannot handle dates beyond 2038 and are deprecated\n"));
 
 	free(fs_type);
 	free(usage_types);
-    //no support
+    //not supported
 	/* The isatty() test is so we don't break existing scripts */
 	/*flags = CREATE_FILE;
 	if (isatty(0) && isatty(1) && !offset)
@@ -3569,7 +3570,7 @@ no_journal:
 		}
 	}
 
-	retval = mk_hugefiles(fs/*, device_name*/);
+	retval = mk_hugefiles(fs, device_name_descr);
 	if (retval)
 		com_err(program_name, retval, "while creating huge files");
 	/* Copy files from the specified directory */

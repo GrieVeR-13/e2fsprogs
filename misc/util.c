@@ -190,6 +190,7 @@ void parse_journal_opts(const char *opts)
 		       arg ? arg : "NONE");
 #endif
 		if (strcmp(token, "device") == 0) {
+            //not supported
 //			journal_device = get_devname(NULL, arg, NULL);
 			if (!journal_device) {
 				if (arg)
