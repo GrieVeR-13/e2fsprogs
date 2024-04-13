@@ -66,7 +66,7 @@
 #include "CFuseSession.h"
 #include <jni.h>
 
-static ext2_filsys global_fs; /* Try not to use this directly */
+//static ext2_filsys global_fs; /* Try not to use this directly */
 
 #undef DEBUG
 
@@ -342,7 +342,7 @@ struct fuse2fs {
 } while (0)
 
 #define FUSE2FS_CHECK_CONTEXT(ptr) do {if ((ptr)->magic != FUSE2FS_MAGIC) \
-	return translate_error(global_fs, 0, EXT2_ET_BAD_MAGIC); \
+	return translate_error((ptr)->fs, 0, EXT2_ET_BAD_MAGIC); \
 } while (0)
 
 static int __translate_error(ext2_filsys fs, errcode_t err, ext2_ino_t ino,
@@ -718,7 +718,7 @@ static int op_destroy(void *p EXT2FS_ATTR((unused)), int isForce)
 	errcode_t err;
 
 	if (ff->magic != FUSE2FS_MAGIC) {
-        int tr = translate_error(global_fs, 0, EXT2_ET_BAD_MAGIC);
+        int tr = translate_error(ff->fs, 0, EXT2_ET_BAD_MAGIC);
         if (!isForce)
             return tr;
 	}
@@ -754,7 +754,7 @@ static void *op_init(struct fuse_conn_info *conn)
 	errcode_t err;
 
 	if (ff->magic != FUSE2FS_MAGIC) {
-		translate_error(global_fs, 0, EXT2_ET_BAD_MAGIC);
+		translate_error(ff->fs, 0, EXT2_ET_BAD_MAGIC);
 		return NULL;
 	}
 	fs = ff->fs;
@@ -3801,6 +3801,7 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 	char extra_args[BUFSIZ];
 	int ret = 0;
 	int flags = EXT2_FLAG_64BITS | EXT2_FLAG_THREADS | EXT2_FLAG_EXCLUSIVE;
+    ext2_filsys temp_fs = NULL;
 
 	memset(fctx, 0, sizeof(*fctx));
     fctx->raio = raio;
@@ -3852,17 +3853,18 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 	if (!fctx->ro)
 		flags |= EXT2_FLAG_RW;
 	char options[50];
-	sprintf(options, "offset=%lu", fctx->offset);//todoe abort revert
+	sprintf(options, "offset=%lu", fctx->offset);
+
 	err = ext2fs_open2(fctx->raio, fctx->device_name_descr, options, flags, 0, 0, unix_io_manager,
-			   &global_fs);
+			   &temp_fs);
 	if (err) {
 		printf(_("%s: %s.\n"), fctx->device_name_descr, error_message(err));
 		printf(_("Please run e2fsck -fy %s.\n"), fctx->device_name_descr);
         ret = -err;
 		goto out;
 	}
-	fctx->fs = global_fs;
-	global_fs->priv_data = fctx;
+	fctx->fs = temp_fs;
+    temp_fs->priv_data = fctx;
 
 	ret = 3;
 
@@ -3889,40 +3891,40 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 			goto out;
 		}
 	}*/
-//todoe uuid check
+
 	if (!fctx->ro) {
-		if (ext2fs_has_feature_journal(global_fs->super))
+		if (ext2fs_has_feature_journal(temp_fs->super))
 			printf(_("%s: Writing to the journal is not supported.\n"),
 			       fctx->device_name_descr);
-		err = ext2fs_read_inode_bitmap(global_fs); //todoe global_fs
+		err = ext2fs_read_inode_bitmap(temp_fs); //todoe global_fs
 		if (err) {
-			ret = translate_error(global_fs, 0, err);
+			ret = translate_error(temp_fs, 0, err);
 			goto out;
 		}
-		err = ext2fs_read_block_bitmap(global_fs);
+		err = ext2fs_read_block_bitmap(temp_fs);
 		if (err) {
-			ret = translate_error(global_fs, 0, err);
+			ret = translate_error(temp_fs, 0, err);
 			goto out;
 		}
 	}
 
-	if (!(global_fs->super->s_state & EXT2_VALID_FS))
+	if (!(temp_fs->super->s_state & EXT2_VALID_FS))
 		printf("%s", _("Warning: Mounting unchecked fs, running e2fsck "
 		       "is recommended.\n"));
-	if (global_fs->super->s_max_mnt_count > 0 &&
-	    global_fs->super->s_mnt_count >= global_fs->super->s_max_mnt_count)
+	if (temp_fs->super->s_max_mnt_count > 0 &&
+	    temp_fs->super->s_mnt_count >= temp_fs->super->s_max_mnt_count)
 		printf("%s", _("Warning: Maximal mount count reached, running "
 		       "e2fsck is recommended.\n"));
-	if (global_fs->super->s_checkinterval > 0 &&
-	    (time_t) (global_fs->super->s_lastcheck +
-		      global_fs->super->s_checkinterval) <= time(0))
+	if (temp_fs->super->s_checkinterval > 0 &&
+	    (time_t) (temp_fs->super->s_lastcheck +
+		      temp_fs->super->s_checkinterval) <= time(0))
 		printf("%s", _("Warning: Check time reached; running e2fsck "
 		       "is recommended.\n"));
-	if (global_fs->super->s_last_orphan)
+	if (temp_fs->super->s_last_orphan)
 		printf("%s",
 		       _("Orphans detected; running e2fsck is recommended.\n"));
 
-	if (global_fs->super->s_state & EXT2_ERROR_FS) {
+	if (temp_fs->super->s_state & EXT2_ERROR_FS) {
 		printf("%s",
 		       _("Errors detected; running e2fsck is required.\n"));
         ret = -1;
@@ -3965,22 +3967,22 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 	ret = 0;
     return ret;
 out:
-	if (global_fs) {
-		err = ext2fs_close(global_fs, 0);
+	if (temp_fs) {
+		err = ext2fs_close(temp_fs, 0);
 		if (err)
 			com_err(argv[0], err, "while closing fs");
-		global_fs = NULL;
+		temp_fs = NULL;
 	}
 	return ret;
 }
 
 int unmountExt4(struct fuse2fs *fctx, int isForce) {
     pthread_mutex_destroy(&fctx->bfl);
-    if (global_fs) { //todoe rem global
-        errcode_t err = ext2fs_close(global_fs, isForce);
+    if (fctx->fs) {
+        errcode_t err = ext2fs_close(fctx->fs, isForce);
         if (err)
             com_err("fuse ext4", err, "while closing fs");
-        global_fs = NULL;
+        fctx->fs = NULL;
     }
     free(fctx);
     return 0;
