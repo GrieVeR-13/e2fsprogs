@@ -2416,17 +2416,14 @@ static int op_statfs(const char *path EXT2FS_ATTR((unused)),
 	return 0;
 }
 
-static ssize_t op_freeSpaceFromEnd()
+static off64_t op_freeSpaceFromEnd()
 {
 	struct fuse_context *ctxt = fuse_get_context();
 	struct fuse2fs *ff = (struct fuse2fs *)ctxt->private_data;
     FUSE2FS_CHECK_CONTEXT(ff);
     ext2_filsys fs = ff->fs;
     off64_t offset = ext2fs_get_free_space_from_end(fs);
-    ssize_t res = (ssize_t)offset;
-    if (res != offset)
-        abort(); //todoe change ssize_t to long long
-	return res;
+	return offset;
 }
 
 int fuse2fsSetCacheEnabled(struct fuse2fs *ff, int isEnabled)
