@@ -4066,11 +4066,11 @@ no_translation:
 
 	if (ino)
 		fprintf(ff->err_fp, "FUSE2FS (%s): %s (inode #%d) at %s:%d.\n",
-			fs->device_name ? fs->device_name : "???",
+			fs->device_name_descr ? fs->device_name_descr : "???",
 			error_message(err), ino, file, line);
 	else
 		fprintf(ff->err_fp, "FUSE2FS (%s): %s at %s:%d.\n",
-			fs->device_name ? fs->device_name : "???",
+			fs->device_name_descr ? fs->device_name_descr : "???",
 			error_message(err), file, line);
 	fflush(ff->err_fp);
 
