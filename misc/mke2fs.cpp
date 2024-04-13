@@ -1230,7 +1230,7 @@ static void syntax_err_report(const char *filename, long err, int line_num)
 	convertRcToNativeException(-1, FM(formattingError)); //exit(1)
 }
 
-//static const char *config_fn[] = { "" "/mke2fs.conf", 0 };  //todoe
+//static const char *config_fn[] = { "" "/mke2fs.conf", 0 };
 
 static void edit_feature(const char *str, __u32 *compat_array)
 {
@@ -1636,7 +1636,7 @@ static void PRS(jobject raio, int argc, char *argv[])
 	if (oldpath) {
 		strcat (newpath, ":");
 		strcat (newpath, oldpath);
-	}//todoe
+	}
 	putenv (newpath);
 
 	/* Determine the system page size if possible */
@@ -1941,7 +1941,7 @@ profile_error:
 		default:
 			usage();
 		}
-	}//todoe optind arg count global, multiple format check
+	}
 	if ((optind == argc) && !show_version_only)
 		usage();
 
@@ -1961,7 +1961,7 @@ profile_error:
 	 * If there's no blocksize specified and there is a journal
 	 * device, use it to figure out the blocksize
 	 */
-	if (blocksize <= 0 && journal_device) { //todoe check ext3, ext2
+	if (blocksize <= 0 && journal_device) {
 		ext2_filsys	jfs;
 		io_manager	io_ptr;
 
@@ -2474,9 +2474,6 @@ profile_error:
 //	if (access("/sys/fs/ext4/features/lazy_itable_init", R_OK) == 0)
 //		lazy_itable_init = 1;
 //
-
-//    Filesystem too small for a journal //todoe
-
     lazy_itable_init = get_bool_from_profile(fs_types,
 						 "lazy_itable_init",
 						 lazy_itable_init);
@@ -2741,7 +2738,7 @@ _("128-byte inodes cannot handle dates beyond 2038 and are deprecated\n"));
 
 	free(fs_type);
 	free(usage_types);
-//todoe
+    //no support
 	/* The isatty() test is so we don't break existing scripts */
 	/*flags = CREATE_FILE;
 	if (isatty(0) && isatty(1) && !offset)
@@ -3171,7 +3168,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 
 		lazy_itable_init = 1;
 		itable_zeroed = 1;
-//		zero_hugefile = 0; //todoe zero_hugefile
+		zero_hugefile = 0;
 		journal_flags |= EXT2_MKJOURNAL_LAZYINIT;
 	}
 
@@ -3185,7 +3182,7 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 					 "0s - skipping inode table wipe\n"));
 			lazy_itable_init = 1;
 			itable_zeroed = 1;
-//			zero_hugefile = 0;
+			zero_hugefile = 0;
 		}
 	}
 
