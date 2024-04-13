@@ -2339,7 +2339,7 @@ static int op_release(const char *path EXT2FS_ATTR((unused)),
 
 	return ret;
 }
-//todoe test ext2 ext3? type flag
+
 static int op_fsync(const char *path EXT2FS_ATTR((unused)),
 		    int datasync EXT2FS_ATTR((unused)),
 		    struct fuse_file_info *fp)
@@ -3870,20 +3870,20 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 	global_fs->priv_data = fctx;
 
 	ret = 3;
-//todoe
-/*	if (ext2fs_has_feature_journal_needs_recovery(global_fs->super)) {
+
+	/*if (ext2fs_has_feature_journal_needs_recovery(global_fs->super)) {
 		if (fctx->norecovery) {
 			printf(_("%s: mounting read-only without "
 				 "recovering journal\n"),
-			       fctx->device);
+			       fctx->device_name_descr);
 		} else if (!fctx->ro) {
-			printf(_("%s: recovering journal\n"), fctx->device);
+			printf(_("%s: recovering journal\n"), fctx->device_name_descr);
 			err = ext2fs_run_ext3_journal(&global_fs);
 			if (err) {
-				printf(_("%s: %s.\n"), fctx->device,
+				printf(_("%s: %s.\n"), fctx->device_name_descr,
 				       error_message(err));
 				printf(_("Please run e2fsck -fy %s.\n"),
-				       fctx->device);
+				       fctx->device_name_descr);
 				goto out;
 			}
 			ext2fs_clear_feature_journal_needs_recovery(global_fs->super);
@@ -3894,7 +3894,7 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 			goto out;
 		}
 	}*/
-
+//todoe uuid check
 	if (!fctx->ro) {
 		if (ext2fs_has_feature_journal(global_fs->super))
 			printf(_("%s: Writing to the journal is not supported.\n"),

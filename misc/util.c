@@ -53,6 +53,7 @@
 #include "support/devname.h"
 //#include "blkid/blkid.h"
 #include "util.h"
+#include "log.h"
 
 char *journal_location_string = NULL;
 
@@ -270,6 +271,7 @@ void figure_journal_size(struct ext2fs_journal_params *jparams,
 
 	ret = ext2fs_get_journal_params(jparams, fs);
 	if (ret) {
+        LOGD("Filesystem too small for a journal");
 		fputs(_("\nFilesystem too small for a journal\n"), stderr);
 		return;
 	}
