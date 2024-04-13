@@ -3896,7 +3896,7 @@ int mountExt4(int argc, char *argv[], jobject  raio, void **fuseSession)
 		if (ext2fs_has_feature_journal(temp_fs->super))
 			printf(_("%s: Writing to the journal is not supported.\n"),
 			       fctx->device_name_descr);
-		err = ext2fs_read_inode_bitmap(temp_fs); //todoe global_fs
+		err = ext2fs_read_inode_bitmap(temp_fs);
 		if (err) {
 			ret = translate_error(temp_fs, 0, err);
 			goto out;
@@ -4075,7 +4075,7 @@ static int __translate_error(ext2_filsys fs, errcode_t err, ext2_ino_t ino,
         fprintf(ff->err_fp, "FUSE2FS (%s): %s at %s:%d.\n",
                 fs->device_name_descr ? fs->device_name_descr : "???",
                 error_message(err), file, line);
-    fflush(ff->err_fp); //todoe err_fp
+    fflush(ff->err_fp);
 
     /* Make a note in the error log */
     get_now(&now);

@@ -29,7 +29,7 @@
 #define KERNEL_VERSION(a,b,c) (((a) << 16) + ((b) << 8) + (c))
 #endif
 #ifdef HAVE_GETOPT_H
-#include <getopt.h> //todoe
+#include <getopt.h>
 #else
 extern char *optarg;
 extern int optind;
@@ -83,7 +83,7 @@ extern "C" {
 extern int isatty(int);
 extern FILE *fpopen(const char *cmd, const char *mode);
 
-const char * program_name = "mke2fs"; //todoe static
+const char * program_name = "mke2fs";
 //static const char * device_name /* = NULL */;
 
 /* Command line options */
@@ -285,7 +285,7 @@ static void test_disk(ext2_filsys fs, badblocks_list *bb_list)
 	if (retval) {
 		com_err("ext2fs_read_bb_FILE", retval, "%s",
 			_("while processing list of bad blocks from program"));
-		exit(1); //todoe exit
+        convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1);
 	}
 }
 
@@ -356,7 +356,7 @@ _("Warning: the backup superblock/group descriptors at block %u contain\n"
 	if (retval) {
 		com_err("ext2fs_badblocks_list_iterate_begin", retval, "%s",
 			_("while marking bad blocks as used"));
-		exit(1);
+        convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1);
 	}
 	while (ext2fs_badblocks_list_iterate(bb_iter, &blk))
 		ext2fs_mark_block_bitmap2(fs->block_map, blk);
@@ -372,7 +372,7 @@ static void write_reserved_inodes(ext2_filsys fs)
 	retval = ext2fs_get_memzero(EXT2_INODE_SIZE(fs->super), &inode);
 	if (retval) {
 		com_err("inode_init", retval, _("while allocating memory"));
-		exit(1);
+        convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1);
 	}
 
 	for (ino = 1; ino < EXT2_FIRST_INO(fs->super); ino++) {
@@ -381,7 +381,7 @@ static void write_reserved_inodes(ext2_filsys fs)
 		if (retval) {
 			com_err("ext2fs_write_inode_full", retval,
 				_("while writing reserved inodes"));
-			exit(1);
+            convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1);
 		}
 	}
 
@@ -1954,7 +1954,7 @@ profile_error:
 	if (show_version_only) {
 		fprintf(stderr, _("\tUsing %s\n"),
 			error_message(EXT2_ET_BASE));
-		exit(0);
+        convertRcToNativeException(-1, FM(formattingError)); //exit(0);
 	}
 
 	/*
@@ -2054,7 +2054,7 @@ profile_error:
 	if (retval && (retval != EXT2_ET_UNIMPLEMENTED)) {
 		com_err(program_name, retval, "%s",
 			_("while trying to determine filesystem size"));
-		convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1) //todoe exit chec
+		convertRcToNativeException(-retval, FM(error_message(retval))); //exit(1)
 	}
 	if (!fs_blocks_count) {
 		if (retval == EXT2_ET_UNIMPLEMENTED) {
@@ -3327,12 +3327,12 @@ int formatExt4(jobject raio, const char *device_name_descr, int argc, char *argv
 		show_stats(fs);
 
 	if (noaction)
-		exit(0);
+        return 0; //exit(0);
 
 	if (ext2fs_has_feature_journal_dev(fs->super)) {
 		create_journal_dev(fs);
 		printf("\n");
-		exit(ext2fs_close_free(&fs, 0) ? 1 : 0);
+        return (ext2fs_close_free(&fs, 0) ? 1 : 0);
 	}
 
 	if (bad_blocks_filename)
