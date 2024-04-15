@@ -4056,6 +4056,10 @@ static int __translate_error(ext2_filsys fs, errcode_t err, ext2_ino_t ino,
 		break;
 	default:
 		is_err = 1;
+        int error = errno;
+        if (error == ECANCELED) {
+            return -error;
+        }
 		ret = -EIO;
 		break;
 	}
