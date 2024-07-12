@@ -2407,9 +2407,12 @@ static int op_statfs(const char *path EXT2FS_ATTR((unused)),
 	f++;
 	fsid ^= *f;
 	buf->f_fsid = fsid;
-	buf->f_flag = 0;
+	/*buf->f_flag = 0;
 	if (fs->flags & EXT2_FLAG_RW)
-		buf->f_flag |= ST_RDONLY;
+		buf->f_flag |= ST_RDONLY;*/
+    if (strcmp(path, "/") == 0) {
+        buf->f_flag = 1;
+    }
 	buf->f_namemax = EXT2_NAME_LEN;
 
 	return 0;
